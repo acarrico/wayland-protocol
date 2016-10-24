@@ -19,7 +19,8 @@ $ mkdir generated
 $ racket gen-wayland-protocol.rkt
 ```
 
-Assuming that "/usr/share/wayland/wayland.xml" exists,
+Using the path in the environment variable *protocol* (or
+"/usr/share/wayland/wayland.xml" if *protocol* is unset),
 "gen-wayland-protocol.rkt" will generate both client and server side
 modules for every Wayland interface present in the XML file. The files
 will be written into the generated directory. It doesn't generate

@@ -698,9 +698,13 @@
          (maybe-find-attribute-value attrs 'summary)
          (maybe-find-attribute-value attrs 'since)))
 
+(define protocol-path
+  (or (getenv "protocol")
+      "/usr/share/wayland/wayland.xml"))
+
 (define wayland-protocol
   (Protocol-parse
-   (call-with-input-file "/usr/share/wayland/wayland.xml"
+   (call-with-input-file protocol-path
      read-xml #:mode 'text)))
 
 (call-with-output-file
