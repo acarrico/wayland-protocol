@@ -5,16 +5,25 @@ export PAGER=cat
 # Make the binaries available from the nix store:
 export PATH=$racket/bin:$weston/bin:$PATH
 
-# Generate the racket wayland interface:
-export protocol=$wayland/share/wayland/wayland.xml
-if test ! -d generated; then
+# Configure the code generator:
+export wayland_share=$wayland/share/wayland/
+export wayland_lib=$wayland/lib/
+
+# To generate the racket wayland interface:
+function build  () {
+  if test ! -d generated; then
     mkdir generated
-fi
-racket gen-wayland-protocol.rkt
+  fi
+  racket gen-wayland-protocol.rkt
+}
 
-# ISSUE: This weston has issues for me, so temporarily using software
-# rendering:
-weston --backend=x11-backend.so --no-config --use-pixman &
+# To start weston with software rendering (if default backend is
+# acting up):
+function weston-pixman () {
+  weston --backend=x11-backend.so --no-config --use-pixman &
+}
 
-# After weston comes up, try the test client:
-# racket test-client.rkt
+# To try the test client:
+function wayland-test () {
+  racket test-client.rkt
+}

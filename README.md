@@ -12,27 +12,81 @@ Among many possible approaches, I have chosen to bind to the C
 libraries (insert rationale here), and to dump racket source code
 (insert rationale here):
 
-# Getting Started
-
-```
-$ mkdir generated
-$ racket gen-wayland-protocol.rkt
-```
-
-Using the path in the environment variable *protocol* (or
-"/usr/share/wayland/wayland.xml" if *protocol* is unset),
-"gen-wayland-protocol.rkt" will generate both client and server side
-modules for every Wayland interface present in the XML file. The files
-will be written into the generated directory. It doesn't generate
-documentation, other than some comments in the code. Generated
-Scribble docs would be cool.
-
-At this point, I'm not checking generated files into git.
+# Code Generation
 
 This is not the most beautiful code of all time, but I believe it
 dumps similar to the C language generator. I've statically generated
 racket code to initialize events, for some reason the C code does this
 dynamically from strings of argument type codes.
+
+The code generator dumps both client and server side Racket modules
+for every Wayland interface present in the protocol's XML file. The
+only generated documentation is some comments in the code (it doesn't
+generate Scribble docs).
+
+# Test or Development
+
+The best way to get a usable environment for testing or development is
+to install the nix package manager (https://nixos.org/nix/). Nix will
+not pollute your machine's current Linux distribution.
+
+`$ nix-shell`
+
+Start an interactive shell based on 'default.nix':
+
+This enters a working environment with racket, wayland, and weston.
+There is no need to have any of these installed in your native user
+environment.
+
+`$ source dev.bash`
+
+This sets up a useful environment for development. Feel free create
+your own variant to suit your own taste. Here are some useful
+functions provided by 'dev.bash':
+
+`$ build`
+
+This (re)builds the 'generated' tree.
+
+`$ weston-pixman`
+
+This starts Weston with x11 backend and software rendering (useful if
+the defaults are giving your machine trouble).
+
+`$ racket test-client.rkt`
+
+See below.
+
+`$ exit`
+
+Leaving the interactive shell drops you back into your normal
+user environment.
+
+# What if I refuse to develop with nix, or have trouble?
+
+* Examine 'default.nix' and 'dev.bash' for dependencies and
+configuration. Install the dependencies and configure your development
+environment.
+
+* The binding generator is cross-friendly in the sense that it doesn't
+try to probe anything from the build machine.
+
+* The nix configuration generates absolute foreign library pathnames
+which are foolproof. If you take the default pathless relative
+filenames, Racket may fail to find your Linux distribution's Wayland
+libraries (I've seen it go both ways in various environments). In that
+case, either build with the 'wayland-lib' environment variable set to
+match your target, or run with Racket's foreign library search paths
+set to match your target.
+
+* If necessary, check which versions of Racket, Wayland, and Weston
+were in the 'nixpkgs-unstable' channel around the time of the commit.
+
+# Installation
+
+There is currently no installable package for any system. The nix
+derivation doesn't even install anything, it is currently just useful
+for nix-shell.
 
 # Test Client
 
@@ -46,10 +100,9 @@ failed to connect to wayland display "No such file or directory"
 ```
 
 If you get the "failed to connect" message, you probably aren't
-running a server. Try starting weston within X11:
+running a server. Try starting weston (see 'weston-pixman' above):
 
 ```
-$ weston &
 $ racket test-client.rkt
 connected to wayland display #<cpointer:_wl_display>
 got registry #<cpointer:_wl_registry>
@@ -64,6 +117,8 @@ registry-handle-global: I got called!
 ```
 
 Now you see the test client in operation.
+
+# Details
 
 I started the project with "test-client.rkt" which was completely
 manual ffi bindings, and from there created "wayland-*.rkt", and the
