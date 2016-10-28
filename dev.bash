@@ -9,6 +9,9 @@ export PATH=$racket/bin:$weston/bin:$PATH
 export wayland_share=$wayland/share/wayland/
 export wayland_lib=$wayland/lib/
 
+# Configure the racket runtime:
+# export PLTADDONDIR=
+
 # To generate the racket wayland interface:
 function build  () {
   if test ! -d generated; then
