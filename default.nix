@@ -9,5 +9,8 @@ in derivation {
   racket ="${pkgs.racket}";
   wayland ="${pkgs.wayland}";
   weston ="${pkgs.weston}";
+  # ISSUE: mesa or mesa-noglu?
+  #mesa-noglu ="${pkgs.mesa-noglu}";
+  mesa ="${pkgs.mesa}";
   system = builtins.currentSystem;
 }
