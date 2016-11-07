@@ -2,15 +2,14 @@
 # into a useful nix-shell for development.
 
 let
-  pkgs = import <nixpkgs> {};
+  # pkgs = import <nixpkgs> {};
+  pkgs = import ../nixpkgs {};
 in derivation {
   name="wayland-protocol-racket";
   builder="${pkgs.bash}/bin/bash";
-  racket ="${pkgs.racket}";
+  racket ="${pkgs.racket-gl}";
   wayland ="${pkgs.wayland}";
   weston ="${pkgs.weston}";
-  # ISSUE: mesa or mesa-noglu?
-  #mesa-noglu ="${pkgs.mesa-noglu}";
   mesa ="${pkgs.mesa}";
   system = builtins.currentSystem;
 }
