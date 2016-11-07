@@ -10,7 +10,11 @@ export wayland_share=$wayland/share/wayland/
 export wayland_lib=$wayland/lib/
 
 # Configure the racket runtime:
+#
 # export PLTADDONDIR=
+#
+# ISSUE: this installs in home.
+raco pkg install opengl
 
 # To generate the racket wayland interface:
 function build  () {
