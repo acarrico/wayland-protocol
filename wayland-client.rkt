@@ -22,13 +22,8 @@
 
 (require "wayland-util.rkt")
 (require "wayland-private.rkt")
-(require "generated/libwayland-client.rkt")
-
-;; ISSUE: libc.so is a GNU ld script, ???
-(define libc (ffi-lib "libc" "6"))
-(define-ffi-definer define-libc libc)
-
-(define-libc strerror (_fun _int -> _string/utf-8))
+(require "generated/libwayland-client.rkt"
+         "generated/libc.rkt")
 
 (define-ffi-definer define-wl-client libwayland-client)
 

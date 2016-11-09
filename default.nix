@@ -11,5 +11,6 @@ in derivation {
   wayland ="${pkgs.wayland}";
   weston ="${pkgs.weston}";
   mesa ="${pkgs.mesa}";
+  libc = "${pkgs.stdenv.glibc}";
   system = builtins.currentSystem;
 }

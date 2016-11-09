@@ -5,9 +5,12 @@
 (require racket/generic)
 (require racket/list)
 
+(require "gen-libc.rkt")
+
 ;; Configuration:
 (define wayland-share (or (getenv "wayland_share") "/usr/share/wayland/"))
 (define wayland-lib (or (getenv "wayland_lib") ""))
+(define libc-dir (or (getenv "libc_lib") ""))
 
 ;; ISSUE: Assuming the XML is correct, for example not checking for
 ;; missing destructor, more than one new id argument, etc. But if C is
@@ -753,3 +756,5 @@
     "generated/libwayland-server.rkt"
   (lambda (out) (display server-lib-header out))
   #:mode 'text #:exists 'replace)
+
+(gen-libc libc-dir)

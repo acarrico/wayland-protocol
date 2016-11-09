@@ -8,6 +8,7 @@ export PATH=$racket/bin:$weston/bin:$PATH
 # Configure the code generator:
 export wayland_share=$wayland/share/wayland/
 export wayland_lib=$wayland/lib/
+export libc_lib=$libc/lib/
 
 # Configure the racket runtime:
 #

@@ -6,12 +6,8 @@
          ;"wayland-private.rkt"
          "wayland-client.rkt"
          "generated/wl_display-client.rkt"
-         "generated/wl_registry-client.rkt")
-
-;; ISSUE: libc.so is a GNU ld script, ???
-(define libc (ffi-lib "libc" "6"))
-(define-ffi-definer define-libc libc)
-(define-libc strerror (_fun _int -> _string/utf-8))
+         "generated/wl_registry-client.rkt"
+         "generated/libc.rkt")
 
 (define (registry-handle-global data registry id interface version)
   (printf "registry-handle-global: I got called!\n ~s ~s ~s ~s ~s\n"
