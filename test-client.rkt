@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require ffi/unsafe ffi/unsafe/define)
+(require ffi/unsafe)
 
 (require ;"wayland-util.rkt"
          ;"wayland-private.rkt"
