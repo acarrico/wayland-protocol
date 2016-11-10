@@ -4,7 +4,7 @@
 
 (require ffi/unsafe ffi/unsafe/define)
 
-(require "wayland-util.rkt")
+(require "util.rkt")
 
 (define-cstruct _wl_object
   ((interface _wl_interface-pointer)

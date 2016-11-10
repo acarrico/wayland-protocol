@@ -4,10 +4,10 @@
 
 (require ;"wayland-util.rkt"
          ;"wayland-private.rkt"
-         "wayland-client.rkt"
-         "generated/wl_display-client.rkt"
-         "generated/wl_registry-client.rkt"
-         "generated/libc.rkt")
+         wayland-0/client
+         wayland-0/generated/wl_display-client
+         wayland-0/generated/wl_registry-client
+         wayland-0/generated/libc)
 
 (define (registry-handle-global data registry id interface version)
   (printf "registry-handle-global: I got called!\n ~s ~s ~s ~s ~s\n"

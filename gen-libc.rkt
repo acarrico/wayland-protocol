@@ -19,7 +19,7 @@
 (define (gen-libc dir)
   (define text (format template dir))
   (call-with-output-file
-    "generated/libc.rkt"
+    "wayland-0/generated/libc.rkt"
     ((curry display) text)
     #:mode 'text
     #:exists 'replace))

@@ -19,8 +19,8 @@ raco pkg install opengl
 
 # To generate the racket wayland interface:
 function build  () {
-  if test ! -d generated; then
-    mkdir generated
+  if test ! -d wayland-0/generated; then
+    mkdir wayland-0/generated
   fi
   racket gen-wayland-protocol.rkt
 }

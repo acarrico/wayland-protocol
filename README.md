@@ -46,7 +46,11 @@ functions provided by 'dev.bash':
 
 `$ build`
 
-This (re)builds the 'generated' tree.
+This (re)builds the wayland-0/generated modules.
+
+`$ raco pkg install`
+
+Locally install the package (should only need to do that once).
 
 `$ weston-pixman`
 
@@ -121,11 +125,11 @@ Now you see the test client in operation.
 # Details
 
 I started the project with "test-client.rkt" which was completely
-manual ffi bindings, and from there created "wayland-*.rkt", and the
-generated interfaces. Let's walk the source.
+manual ffi bindings, and from there created the wayland-0 and
+wayland-0/generated modules. Let's walk the source.
 
 ```
-(require "wayland-client.rkt")
+(require "wayland-0/client")
 
 (let ((wl-display (wl_display_connect #f)))
   ...
@@ -136,8 +140,9 @@ This the basic connection to the display server.
 
 ```
 (require ...
-         "generated/wl_display-client.rkt")
-         "generated/wl_registry-client.rkt")
+         wayland-0/generated/wl_display-client)
+         wayland-0/generated/wl_registry-client
+         ...)
 
 (define (registry-handle-global data registry id interface version)
   (printf "registry-handle-global: I got called!\n ~s ~s ~s ~s ~s\n"
@@ -168,17 +173,18 @@ illustrates how to make requests and process events.
 
 # Further Testing
 
-In theory, with *(require "generated/wl_xxxxxxxx-client.rkt")* (or
-*-server.rkt*) you can get busy with any interface in the Wayland
+In theory, with *(require wayland-0/generated/wl_xxxxxxxx-client)* (or
+*-server*) you can get busy with any interface in the Wayland
 protocol. However, nothing else has been tested. In reality, the
-generator and/or the "wayland-xxx.rkt" modules may need a little
+generator and/or the wayland-0 modules may need a little
 tweaking.
 
-There are two files "generated/client-test.rkt" and
-"generated/server-test.rkt" which simply require all the interfaces
-for one side or the other. Both these tests currently reveal some
-problems, the server side definitely needs more work (my long term to
-do list includes the item "wayland ffi server side bindings").
+There are two modules wayland-0/generated/client-test and
+wayland-0/generated/server-test which simply require all the
+interfaces for one side or the other. Both these tests currently
+reveal some problems, the server side definitely needs more work (my
+long term to do list includes the item "wayland ffi server side
+bindings").
 
 # Status
 

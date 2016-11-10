@@ -20,8 +20,8 @@
 (define _wl_client-pointer (_cpointer 'wl_client))
 (define _wl_resource-pointer (_cpointer 'wl_resource))
 
-(require "wayland-util.rkt")
-(require "wayland-private.rkt")
+(require "util.rkt")
+(require "private.rkt")
 (require "generated/libwayland-client.rkt"
          "generated/libc.rkt")
 
