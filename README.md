@@ -48,10 +48,6 @@ functions provided by 'dev.bash':
 
 This (re)builds the wayland-0/generated modules.
 
-`$ raco pkg install`
-
-Locally install the package (should only need to do that once).
-
 `$ weston-pixman`
 
 This starts Weston with x11 backend and software rendering (useful if

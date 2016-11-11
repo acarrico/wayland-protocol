@@ -15,6 +15,7 @@ export libc_lib=$libc/lib/
 # export PLTADDONDIR=
 #
 # ISSUE: this installs in home.
+raco pkg install
 raco pkg install opengl
 
 # To generate the racket wayland interface:
