@@ -1,7 +1,6 @@
 #lang typed/racket/base
 
-(require typed/wayland-0/client
-         typed/wayland-0/registry-client
+(require typed/wayland-0/registry-client
          typed/wayland-0/display-client
          typed/wayland-0/common
          )
