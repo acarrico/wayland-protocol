@@ -32,8 +32,8 @@
 
 ;; NOTE: these are also defined in generated/wl_display-client.rkt,
 ;; which requires this module, so we must also define them here:
-(define _wl_display-pointer (_cpointer '_wl_display))
-(define _wl_display-pointer/null (_cpointer/null '_wl_display))
+(define _wl_display-pointer (_cpointer 'wl_display))
+(define _wl_display-pointer/null (_cpointer/null 'wl_display))
 
 (define-wl-client wl_proxy_marshal_array
   (_fun #:save-errno 'posix

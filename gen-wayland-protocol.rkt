@@ -167,6 +167,9 @@
 (define (object-type-name i)
   (string-append "_" (object-name i)))
 
+(define (object-predicate-name i)
+  (string-append (object-name i) "?"))
+
 (define (object-pointer-name i)
   (string-append (object-type-name i) "-pointer"))
 
@@ -241,10 +244,16 @@
      (for ((out (list client-out server-out)))
        (newline out)
        (pretty-display
-        `(define ,(object-pointer-name i) (_cpointer ',(object-type-name i)))
+        `(define (,(object-predicate-name i) x)
+           (and
+            (cpointer? x)
+            (cpointer-has-tag? x ',(object-name i))))
         out)
        (pretty-display
-        `(define ,(object-pointer/null-name i) (_cpointer/null ',(object-type-name i)))
+        `(define ,(object-pointer-name i) (_cpointer ',(object-name i)))
+        out)
+       (pretty-display
+        `(define ,(object-pointer/null-name i) (_cpointer/null ',(object-name i)))
         out))
 
      (pretty-display
@@ -368,7 +377,8 @@
   (values
    ;; client
    (append
-    (list (object-pointer-name i)
+    (list (object-predicate-name i)
+          (object-pointer-name i)
           (object-pointer/null-name i)
           (object-descriptor-name i)
           `(struct-out ,(object-client-interface-name i))
