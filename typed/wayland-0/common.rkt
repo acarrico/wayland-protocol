@@ -1,6 +1,8 @@
 #lang typed/racket/base
 
 (provide Pointer
+         saved-errno
+         strerror
          upcast-DisplayPointer
          DisplayPointer
          RegistryPointer)
@@ -15,6 +17,12 @@
 
 (unsafe-require/typed ffi/unsafe
   (#:opaque Pointer cpointer?))
+
+(require/typed ffi/unsafe
+  (saved-errno (-> Integer)))
+
+(require/typed wayland-0/generated/libc
+  (strerror (-> Integer String)))
 
 (module upcast racket/base
   (provide upcast-DisplayPointer)
