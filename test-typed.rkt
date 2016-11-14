@@ -3,7 +3,7 @@
 (require typed/wayland-0/registry-client
          typed/wayland-0/display-client
          typed/wayland-0/common
-         )
+         racket/function)
 
 (: registry-handle-global RegistryHandleGlobal)
 (define (registry-handle-global data registry id interface version)
@@ -18,11 +18,24 @@
 (define registry-listener
   (make-wl_registry_listener registry-handle-global registry-handle-global-remove))
 
-(define wl_display (or (wl_display_connect #f)
-                    (error "no display")))
+(: register (-> DisplayPointer Void))
+(define (register wl_display)
+  (define wl_registry (wl_display-get_registry wl_display))
+  (wl_registry-add-listener wl_registry registry-listener (cast wl_display Pointer))
+  (wl_display_roundtrip wl_display)
+  (void))
 
-(define wl_registry (wl_display-get_registry wl_display))
+((compose1
+  (curry for-DisplayPointer wl_display_disconnect)
+  (curry for-DisplayPointer register))
+ #f)
 
-(wl_registry-add-listener wl_registry registry-listener (cast wl_display Pointer))
-(wl_display_roundtrip wl_display)
-(wl_display_disconnect wl_display)
+((compose1
+  (curry for-DisplayPointer wl_display_disconnect)
+  (curry for-DisplayPointer register))
+ "wayland-0")
+
+((compose1
+  (curry for-DisplayPointer wl_display_disconnect)
+  (curry for-DisplayPointer register))
+ "wayland-1")
