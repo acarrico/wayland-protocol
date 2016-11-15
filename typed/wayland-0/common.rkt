@@ -1,6 +1,8 @@
 #lang typed/racket/base
 
-(provide Pointer
+(provide Errno
+         get-Errno
+         Pointer
          saved-errno
          strerror
          upcast-DisplayPointer
@@ -34,3 +36,13 @@
 
 (require/typed 'upcast
   (upcast-DisplayPointer (-> Pointer DisplayPointer)))
+
+(struct Errno
+  ((errno : Integer)
+   (errstr : String))
+  #:transparent)
+
+(: get-Errno (-> Errno))
+(define (get-Errno)
+  (define e (saved-errno))
+  (Errno e (strerror e)))
