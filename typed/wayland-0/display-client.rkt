@@ -1,7 +1,17 @@
 #lang typed/racket/base
 
-(provide DisplayPointer
+(provide (struct-out DisplayDisconnected)
+         (struct-out DisplayConnected)
+         (struct-out DisplayErrorConnect)
+         
+         DisplayError
+         DisplayError?
+
+         Display
+         Display?
          for-Display
+
+         DisplayPointer
          for-DisplayPointer
          wl_display_connect
          wl_display_disconnect
@@ -22,10 +32,8 @@
   (wl_display-get_registry (-> DisplayPointer RegistryPointer))
   )
 
-(struct DisplayNoConnection
-  ((name : String)
-   (errno : Integer)
-   (errstr : String))
+(struct DisplayDisconnected
+  ((name : String))
   #:transparent)
 
 (struct DisplayConnected
@@ -33,17 +41,25 @@
    (pointer : DisplayPointer))
   #:transparent)
 
-(struct DisplayDisconnected
-  ((name : String))
+(struct DisplayErrorConnect
+  ((name : String)
+   (errno : Errno))
   #:transparent)
+
+(define-type DisplayError
+  (U DisplayErrorConnect))
+
+(define DisplayError? (make-predicate DisplayError))
 
 (define-type Display
   (U
    #f ; Use the WAYLAND_DISPLAY env. var. if set, otherwise "wayland-0".
    String
    DisplayDisconnected
-   DisplayNoConnection
+   DisplayError
    DisplayConnected))
+
+(define Display? (make-predicate Display))
 
 (: for-Display (-> (-> DisplayConnected Void) Display Display))
 (define (for-Display proc disp)
@@ -51,7 +67,7 @@
     ((struct DisplayConnected _)
      (proc disp)
      disp)
-    ((struct DisplayNoConnection _)
+    ((? DisplayError?)
      disp)
     ((struct DisplayDisconnected _)
      (for-Display proc (DisplayDisconnected-name disp)))
@@ -62,8 +78,7 @@
               (proc display)
               display))
            (else
-            (define errno (saved-errno))
-            (DisplayNoConnection disp errno (strerror errno)))))
+            (DisplayErrorConnect disp (get-Errno)))))
     (#f (for-Display proc (or (getenv "WAYLAND_DISPLAY") "wayland-0")))))
 
 (: for-DisplayPointer (-> (-> DisplayPointer Void) Display Display))
