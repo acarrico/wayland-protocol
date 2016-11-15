@@ -21,7 +21,8 @@
 (: register (-> DisplayPointer Void))
 (define (register wl_display)
   (define wl_registry (wl_display-get_registry wl_display))
-  (wl_registry-add-listener wl_registry registry-listener (cast wl_display Pointer))
+  (when wl_registry
+    (wl_registry-add-listener wl_registry registry-listener (cast wl_display Pointer)))
   (wl_display_roundtrip wl_display)
   (void))
 

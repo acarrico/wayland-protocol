@@ -161,6 +161,9 @@
 (define (interface-name->pointer-name s)
   (format "_~a-pointer" s))
 
+(define (interface-name->pointer-name/null s)
+  (format "_~a-pointer/null" s))
+
 (define (object-name i)
   (About-name (Interface-about i)))
 
@@ -569,9 +572,9 @@
          ,(match new-id-arg?
             ((struct* Arg ((about (struct* About ((name arg-name))))
                            (interface-name interface-name)))
-             `(cast ,arg-name _wl_proxy-pointer
+             `(cast ,arg-name _wl_proxy-pointer/null
                     ,(if interface-name
-                         (interface-name->pointer-name interface-name)
+                         (interface-name->pointer-name/null interface-name)
                          '_void)))
             (_
              '(void))))
