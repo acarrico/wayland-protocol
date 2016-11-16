@@ -3,6 +3,7 @@
 (provide Errno
          get-Errno
          Pointer
+         Pointer?
          saved-errno
          strerror
          upcast-DisplayPointer
@@ -19,6 +20,8 @@
 
 (unsafe-require/typed ffi/unsafe
   (#:opaque Pointer cpointer?))
+
+(define Pointer? (make-predicate Pointer))
 
 (require/typed ffi/unsafe
   (saved-errno (-> Integer)))
