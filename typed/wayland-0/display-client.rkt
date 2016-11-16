@@ -7,12 +7,7 @@
          display-disconnect
          display-roundtrip
          display-sync
-         display-get-registry
-
-         wl_display_connect
-         wl_display_disconnect
-         wl_display_roundtrip
-         wl_display-get_registry)
+         display-get-registry)
 
 (require racket/match
          "common.rkt"
