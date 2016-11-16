@@ -2,6 +2,7 @@
 
 (provide Errno
          get-Errno
+         (struct-out ErrorProxyHasListener)
          Pointer
          Pointer?
          saved-errno
@@ -51,3 +52,5 @@
 (define (get-Errno)
   (define e (saved-errno))
   (Errno e (strerror e)))
+
+(struct ErrorProxyHasListener () #:transparent)

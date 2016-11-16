@@ -3,40 +3,40 @@
 (require typed/wayland-0/registry-client
          typed/wayland-0/display-client
          typed/wayland-0/common
-         racket/function)
+         racket/function
+         racket/match
+         racket/pretty)
 
-(: registry-handle-global RegistryHandleGlobal)
-(define (registry-handle-global data registry id interface version)
-  (printf "registry-handle-global: I got called!\n ~s ~s ~s ~s ~s\n"
-          (upcast-DisplayPointer data) registry id interface version))
+(let ()
+  (define dp (match (display-connect #f)
+               ((? DisplayPointer? (var dp)) dp)
+               ((var errno) (error "connect: " errno))))
 
-(: registry-handle-global-remove RegistryHandleGlobalRemove)
-(define (registry-handle-global-remove data registry name)
-  (printf "registry-handle-global-remove: I got called!\n"))
+  (define rp (match (display-get-registry dp)
+               ((? RegistryPointer? (var rp)) rp)
+               ((var errno) (error "register: " errno))))
 
-;; NOTE: this is never freed:
-(define registry-listener
-  (make-wl_registry_listener registry-handle-global registry-handle-global-remove))
+  (: globals (HashTable Integer Symbol))
+  (define globals (make-hasheq))
 
-(: register (-> DisplayPointer Void))
-(define (register wl_display)
-  (define wl_registry (wl_display-get_registry wl_display))
-  (when wl_registry
-    (wl_registry-add-listener wl_registry registry-listener (cast wl_display Pointer)))
-  (wl_display_roundtrip wl_display)
-  (void))
+  (: handle-global RegistryHandleGlobal)
+  (define (handle-global data registry id interface version)
+    (hash-set! globals id (string->symbol interface)))
 
-((compose1
-  (curry for-DisplayPointer wl_display_disconnect)
-  (curry for-DisplayPointer register))
- #f)
+  (: handle-global-remove RegistryHandleGlobalRemove)
+  (define (handle-global-remove data registry id)
+    (hash-remove! globals id))
 
-((compose1
-  (curry for-DisplayPointer wl_display_disconnect)
-  (curry for-DisplayPointer register))
- "wayland-0")
-
-((compose1
-  (curry for-DisplayPointer wl_display_disconnect)
-  (curry for-DisplayPointer register))
- "wayland-1")
+  (define free-me (match (registry-add-listener
+                          rp
+                          handle-global
+                          handle-global-remove
+                          (cast dp Pointer))
+                    ((? Pointer? (var p)) p)
+                    ((? ErrorProxyHasListener? (var e))
+                     (error "registry already has listener"))))
+  (display-roundtrip dp)
+  (printf "globals:\n")
+  (pretty-display globals)
+  (display-disconnect dp)
+  (free free-me))

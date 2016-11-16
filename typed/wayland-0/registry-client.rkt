@@ -3,13 +3,15 @@
 (provide RegistryHandleGlobal
          RegistryHandleGlobalRemove
          RegistryPointer
-         RegistryListener
-         make-wl_registry_listener
-         wl_registry-add-listener)
+         RegistryPointer?
+         registry-add-listener)
 
-(require typed/racket/unsafe)
+(require typed/racket/unsafe
+         racket/match)
 
 (require "common.rkt")
+
+(define RegistryPointer? (make-predicate RegistryPointer))
 
 (unsafe-require/typed "../../wayland-0/generated/wl_registry-client.rkt"
   (#:opaque RegistryListener wl_registry_listener?))
@@ -31,3 +33,15 @@
                                  RegistryHandleGlobalRemove
                                  RegistryListener))
   (wl_registry-add-listener (-> RegistryPointer RegistryListener Pointer Integer)))
+
+(: registry-add-listener
+   (-> RegistryPointer RegistryHandleGlobal RegistryHandleGlobalRemove Pointer
+       ;; NOTE: We return pointer for memory management.
+       (U Pointer
+          ErrorProxyHasListener)))
+(define (registry-add-listener rp g gr p)
+  (define rl (make-wl_registry_listener g gr))
+  (define result (wl_registry-add-listener rp rl p))
+  (match result
+    (0 (cast rl Pointer))
+    (-1 (ErrorProxyHasListener))))
