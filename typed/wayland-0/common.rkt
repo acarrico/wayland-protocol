@@ -9,7 +9,7 @@
          saved-errno
          free
          strerror
-         upcast-DisplayPointer
+         downcast-DisplayPointer
          DisplayPointer
          RegistryPointer)
 
@@ -35,16 +35,16 @@
 (require/typed wayland-0/generated/libc
   (strerror (-> Integer String)))
 
-(module upcast racket/base
-  (provide upcast-DisplayPointer)
+(module downcast racket/base
+  (provide downcast-DisplayPointer)
   (require ffi/unsafe)
   (require wayland-0/generated/wl_display-client)
-  
-  (define (upcast-DisplayPointer d)
+
+  (define (downcast-DisplayPointer d)
     (cast d _pointer _wl_display-pointer)))
 
-(require/typed 'upcast
-  (upcast-DisplayPointer (-> Pointer DisplayPointer)))
+(require/typed 'downcast
+  (downcast-DisplayPointer (-> Pointer DisplayPointer)))
 
 (struct Errno
   ((errno : Integer)
