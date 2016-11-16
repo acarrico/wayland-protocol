@@ -332,14 +332,18 @@
 
      ;; client
      (newline client-out)
+
+     (define upcast-to-wl_proxy
+       `(cast ,name ,(interface-name->pointer-name name) _wl_proxy-pointer))
+
      (pretty-display
       `(define (,(set-user-data-name i) ,name user-data)
-         (wl_proxy_set_user_data ,name user-data))
+         (wl_proxy_set_user_data ,upcast-to-wl_proxy user-data))
       client-out)
      (newline client-out)
      (pretty-display
       `(define (,(get-user-data-name i) ,name)
-         (wl_proxy_set_user_data ,name))
+         (wl_proxy_set_user_data ,upcast-to-wl_proxy))
       client-out)
 
      (when (and (not (Interface-has-destroy-message i))
@@ -347,7 +351,7 @@
        (newline client-out)
        (pretty-display
         `(define (,(Interface-destroy-name i) ,name)
-           (wl_proxy_destroy (cast ,name ,(interface-name->pointer-name name) _wl_proxy-pointer)))
+           (wl_proxy_destroy ,upcast-to-wl_proxy))
         client-out))
      (for ((m request-messages))
        (Message-stub m i client-out))
