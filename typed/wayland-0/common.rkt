@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
-(provide Errno
+(provide UInt32
+         Errno
          get-Errno
          (struct-out ErrorProxyHasListener)
          Pointer
@@ -11,6 +12,8 @@
          upcast-DisplayPointer
          DisplayPointer
          RegistryPointer)
+
+(define-type UInt32 Exact-Nonnegative-Integer)
 
 (require typed/racket/unsafe)
 
