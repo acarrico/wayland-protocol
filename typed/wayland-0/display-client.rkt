@@ -1,19 +1,7 @@
 #lang typed/racket/base
 
-(provide (struct-out DisplayDisconnected)
-         (struct-out DisplayConnected)
-         (struct-out DisplayErrorConnect)
-
-         DisplayError
-         DisplayError?
-
-         Display
-         Display?
-         for-Display
-
-         DisplayPointer
+(provide DisplayPointer
          DisplayPointer?
-         for-DisplayPointer
 
          display-connect
          display-disconnect
@@ -69,59 +57,3 @@
 (define (display-get-registry dp)
   (or (wl_display-get_registry dp)
       (get-Errno)))
-
-(struct DisplayDisconnected
-  ((name : String))
-  #:transparent)
-
-(struct DisplayConnected
-  ((name : String)
-   (pointer : DisplayPointer))
-  #:transparent)
-
-(struct DisplayErrorConnect
-  ((name : String)
-   (errno : Errno))
-  #:transparent)
-
-(define-type DisplayError
-  (U DisplayErrorConnect))
-
-(define DisplayError? (make-predicate DisplayError))
-
-(define-type Display
-  (U
-   #f ; Use the WAYLAND_DISPLAY env. var. if set, otherwise "wayland-0".
-   String
-   DisplayDisconnected
-   DisplayError
-   DisplayConnected))
-
-(define Display? (make-predicate Display))
-
-(: for-Display (-> (-> DisplayConnected Void) Display Display))
-(define (for-Display proc disp)
-  (match disp
-    ((struct DisplayConnected _)
-     (proc disp)
-     disp)
-    ((? DisplayError?)
-     disp)
-    ((struct DisplayDisconnected _)
-     (for-Display proc (DisplayDisconnected-name disp)))
-    ((? string?)
-     (cond ((wl_display_connect disp) =>
-            (lambda (pointer)
-              (define display (DisplayConnected disp pointer))
-              (proc display)
-              display))
-           (else
-            (DisplayErrorConnect disp (get-Errno)))))
-    (#f (for-Display proc (or (getenv "WAYLAND_DISPLAY") "wayland-0")))))
-
-(: for-DisplayPointer (-> (-> DisplayPointer Void) Display Display))
-(define (for-DisplayPointer proc d)
-  (for-Display (compose proc DisplayConnected-pointer) d))
-
-;; (: map-Display (All (a) (-> (-> DisplayConnected a) Display (Vector Display a))))
-
