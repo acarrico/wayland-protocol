@@ -5,6 +5,7 @@
          Pointer
          Pointer?
          saved-errno
+         free
          strerror
          upcast-DisplayPointer
          DisplayPointer
@@ -24,7 +25,8 @@
 (define Pointer? (make-predicate Pointer))
 
 (require/typed ffi/unsafe
-  (saved-errno (-> Integer)))
+  (saved-errno (-> Integer))
+  (free (-> Pointer Void)))
 
 (require/typed wayland-0/generated/libc
   (strerror (-> Integer String)))
