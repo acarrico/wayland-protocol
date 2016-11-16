@@ -346,7 +346,8 @@
                 (not (string=? name "wl_display")))
        (newline client-out)
        (pretty-display
-        `(define (,(Interface-destroy-name i) ,name) (wl_proxy_destroy ,name))
+        `(define (,(Interface-destroy-name i) ,name)
+           (wl_proxy_destroy (cast ,name ,(interface-name->pointer-name name) _wl_proxy-pointer)))
         client-out))
      (for ((m request-messages))
        (Message-stub m i client-out))
