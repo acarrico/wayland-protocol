@@ -2,6 +2,7 @@
 
 (require typed/wayland-0/registry-client
          typed/wayland-0/display-client
+         typed/wayland-0/callback-client
          typed/wayland-0/common
          racket/function
          racket/match
@@ -38,5 +39,27 @@
   (display-roundtrip dp)
   (printf "globals:\n")
   (pretty-display globals)
+
+  (define cbp (match (display-sync dp)
+                ((? CallbackPointer? (var cbp)) cbp)
+                ((var errno) (error "sync: " errno))))
+
+  (: handle-done CallbackDone)
+  (define (handle-done data callback callback-data)
+    (printf "callback: done ~a\n" callback-data)
+    (free free-me*)
+    (callback-destroy callback))
+
+  (: free-me* Pointer)
+  (define free-me* (match (callback-add-listener
+                           cbp
+                           handle-done
+                           (cast dp Pointer))
+                     ((? Pointer? (var p)) p)
+                     ((? ErrorProxyHasListener? (var e))
+                      (error "callback already has listener"))))
+
+  (display-roundtrip dp)
+
   (display-disconnect dp)
   (free free-me))
