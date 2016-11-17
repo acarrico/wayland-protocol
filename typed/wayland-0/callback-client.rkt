@@ -2,8 +2,11 @@
 
 (provide CallbackPointer
          CallbackPointer?
+         CallbackListener
+         CallbackListener?
          CallbackDone
          callback-add-listener
+         callback-get-listener
          callback-destroy)
 
 (require typed/racket/unsafe
@@ -18,6 +21,8 @@
 (unsafe-require/typed "../../wayland-0/generated/wl_callback-client.rkt"
   (#:opaque CallbackListener wl_callback_listener?))
 
+(define CallbackListener? (make-predicate CallbackListener))
+
 ;; (_fun _pointer _wl_callback-pointer _uint32 -> _void)
 (define-type CallbackDone (-> Pointer CallbackPointer UInt32 Void))
 
@@ -27,16 +32,16 @@
   (make-wl_callback_listener (-> CallbackDone
                                  CallbackListener))
   (wl_callback-add-listener (-> CallbackPointer CallbackListener Pointer Integer))
+  ((wl_callback-get-listener callback-get-listener)
+   (-> CallbackPointer (Option CallbackListener)))
   ((wl_callback-destroy callback-destroy) (-> CallbackPointer Void)))
 
 (: callback-add-listener
    (-> CallbackPointer CallbackDone Pointer
-       ;; NOTE: We return pointer for memory management.
-       (U Pointer
-          ErrorProxyHasListener)))
+       (U CallbackListener ErrorProxyHasListener)))
 (define (callback-add-listener cbp done data)
   (define listener (make-wl_callback_listener done))
   (define result (wl_callback-add-listener cbp listener data))
   (match result
-    (0 (cast listener Pointer))
+    (0 listener)
     (-1 (ErrorProxyHasListener))))

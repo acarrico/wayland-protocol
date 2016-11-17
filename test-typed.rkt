@@ -28,38 +28,38 @@
   (define (handle-global-remove data registry id)
     (hash-remove! globals id))
 
-  (define free-me (match (registry-add-listener
-                          rp
-                          handle-global
-                          handle-global-remove
-                          (cast dp Pointer))
-                    ((? Pointer? (var p)) p)
-                    ((? ErrorProxyHasListener? (var e))
-                     (error "registry already has listener"))))
+  (define rl (match (registry-add-listener
+                     rp
+                     handle-global
+                     handle-global-remove
+                     (cast dp Pointer))
+               ((? ErrorProxyHasListener? (var e))
+                (error "registry already has listener"))
+               ((? RegistryListener? (var rl)) rl)))
+
   (display-roundtrip dp)
   (printf "globals:\n")
   (pretty-display globals)
 
-  (define cbp (match (display-sync dp)
-                ((? CallbackPointer? (var cbp)) cbp)
-                ((var errno) (error "sync: " errno))))
-
+  ;; A display sync request is handled by a one shot done event. Here,
+  ;; handle-done uses callback-get-listener to locate its listener for
+  ;; cleanup.
   (: handle-done CallbackDone)
   (define (handle-done data callback callback-data)
-    (printf "callback: done ~a\n" callback-data)
-    (free free-me*)
-    (callback-destroy callback))
+    (printf "display sync done event ~a\n" callback-data)
+    (define listener (callback-get-listener callback))
+    (callback-destroy callback)
+    (when listener (free (cast listener Pointer))))
 
-  (: free-me* Pointer)
-  (define free-me* (match (callback-add-listener
-                           cbp
-                           handle-done
-                           (cast dp Pointer))
-                     ((? Pointer? (var p)) p)
-                     ((? ErrorProxyHasListener? (var e))
-                      (error "callback already has listener"))))
+  ;; display sync
+  (printf "display sync request\n")
+  (callback-add-listener
+   (match (display-sync dp)
+     ((? CallbackPointer? (var callback)) callback)
+     ((var errno) (error "sync: " errno)))
+   handle-done
+   (cast dp Pointer))
 
   (display-roundtrip dp)
-
   (display-disconnect dp)
-  (free free-me))
+  (free (cast rl Pointer)))
