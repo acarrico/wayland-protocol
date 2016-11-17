@@ -186,15 +186,26 @@
   (format "~a_listener" (object-name i)))
 (define (object-client-interface-type-name i)
   (format "_~a" (object-client-interface-name i)))
+(define (object-client-interface-pointer-name i)
+  (format "~a-pointer" (object-client-interface-type-name i)))
+(define (object-client-interface-pointer/null-name i)
+  (format "~a/null" (object-client-interface-pointer-name i)))
 
 (define (object-add-listener-name i)
   (format "~a-add-listener" (object-name i)))
+
+(define (object-get-listener-name i)
+  (format "~a-get-listener" (object-name i)))
 
 ;; NOTE: struct _*_interface in C.
 (define (object-server-interface-name i)
   (format "~a_implementation" (object-name i)))
 (define (object-server-interface-type-name i)
   (format "_~a" (object-server-interface-name i)))
+(define (object-server-interface-pointer-name i)
+  (format "~a-pointer" (object-server-interface-type-name i)))
+(define (object-server-interface-pointer/null-name i)
+  (format "~a/null" (object-server-interface-pointer-name i)))
 
 (define (opcode-name i m)
   (format "~a-~a-opcode" (object-name i) (Message-name m)))
@@ -272,8 +283,10 @@
 
      (for ((out (list client-out server-out))
            (server? (list #f #t))
-           (cstruct-name (list (object-client-interface-type-name i)
-                               (object-server-interface-type-name i)))
+           (interface-type-name (list (object-client-interface-type-name i)
+                                      (object-server-interface-type-name i)))
+           (interface-pointer/null-name (list (object-client-interface-pointer/null-name i)
+                                              (object-server-interface-pointer/null-name i)))
            (messages (list event-messages request-messages)))
        (unless (empty? messages)
          (newline out)
@@ -289,7 +302,7 @@
                     name name))
 
          (pretty-display
-          `(define-cstruct ,cstruct-name
+          `(define-cstruct ,interface-type-name
              ,(for/list ((m messages))
                 (list
                  (Message-name m)
@@ -306,6 +319,16 @@
                 ;; NOTE: technically (cast listener _wl_registry_listener-pointer (void (**)(void)) )
                 listener
                 data))
+            out)
+
+           (newline out)
+           (pretty-display
+            `(define (,(object-get-listener-name i) ,(object-name i))
+               (cast
+                (wl_proxy_get_listener
+                 (cast ,(object-name i) ,(object-pointer-name i) _wl_proxy-pointer))
+                _pointer
+                ,interface-pointer/null-name))
             out))))
 
      ;; Emit opcodes
@@ -390,7 +413,8 @@
           (object-pointer/null-name i)
           (object-descriptor-name i)
           `(struct-out ,(object-client-interface-name i))
-          (object-add-listener-name i))
+          (object-add-listener-name i)
+          (object-get-listener-name i))
     (for/list ((m request-messages))
       (opcode-name i m))
     (list (set-user-data-name i) (get-user-data-name i))

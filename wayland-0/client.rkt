@@ -11,6 +11,7 @@
  wl_proxy_marshal_array_constructor
  wl_proxy_destroy
  wl_proxy_add_listener
+ wl_proxy_get_listener
  wl_proxy_set_user_data
  wl_proxy_get_user_data
  wl_display_connect
@@ -59,6 +60,9 @@
         _pointer ;; actually it is declared void (**implementation)(void)
         _pointer
         -> _int))
+
+(define-wl-client wl_proxy_get_listener
+  (_fun _wl_proxy-pointer -> _pointer))
 
 (define-wl-client wl_proxy_set_user_data
   (_fun _wl_proxy-pointer
