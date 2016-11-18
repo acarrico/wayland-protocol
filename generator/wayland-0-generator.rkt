@@ -150,6 +150,7 @@
 (define (get-provides i server?)
   (define request-messages (map Request-message (Interface-requests i)))
   (define event-messages (map Event-message (Interface-events i)))
+
   (if server?
       ;; server
       (append
@@ -175,10 +176,13 @@
        (list (object-predicate-name i)
              (object-pointer-name i)
              (object-pointer/null-name i)
-             (object-descriptor-name i)
-             `(struct-out ,(object-client-interface-name i))
-             (object-add-listener-name i)
-             (object-get-listener-name i))
+             (object-descriptor-name i))
+       (if (empty? event-messages)
+           '()
+           (list
+            `(struct-out ,(object-client-interface-name i))
+            (object-add-listener-name i)
+            (object-get-listener-name i)))
        (for/list ((m request-messages))
          (opcode-name i m))
        (list (set-user-data-name i) (get-user-data-name i))
@@ -256,7 +260,8 @@
              #:malloc-mode 'raw)
           out)))
 
-     (when (not server?)
+     (when (and (not server?)
+                (not (empty? event-messages)))
        (newline out)
        (pretty-display
         `(define (,(object-add-listener-name i) ,(object-name i) listener data)
