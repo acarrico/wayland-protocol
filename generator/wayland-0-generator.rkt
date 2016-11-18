@@ -4,6 +4,7 @@
 (require racket/pretty)
 (require racket/list)
 (require racket/match)
+(require racket/function)
 
 (provide Protocol-dump)
 
@@ -36,23 +37,22 @@
 (define-ffi-definer define-wl-client libwayland-client)
 ")
 
-(define (interface-name->client-module-path n)
-  (format "wayland-0/generated/~a-client" n))
+(define (server?->string server?) (if server? "server" "client"))
 
-(define (interface-name->client-filename n)
-  (format "~a-client.rkt" n))
+(define (interface-module i server?)
+  (string->symbol
+   (format "wayland-0/generated/~a-~a"
+           (Interface-name i)
+           (server?->string server?))))
 
-(define (interface-name->client-path n)
-  (format "wayland-0/generated/~a" (interface-name->client-filename n)))
+(define (interface-name-filename name server?)
+  (format "~a-~a.rkt" name (server?->string server?)))
 
-(define (interface-name->server-module-path n)
-  (format "wayland-0/generated/~a-server" n))
+(define (interface-filename i server?)
+  (interface-name-filename (Interface-name i) server?))
 
-(define (interface-name->server-filename n)
-  (format "~a-server.rkt" n))
-
-(define (interface-name->server-path n)
-  (format "wayland-0/generated/~a" (interface-name->server-filename n)))
+(define (interface-path i server?)
+  (format "wayland-0/generated/~a" (interface-filename i server?)))
 
 (define (interface-name->object-descriptor-name s)
   (format "~a_interface" s))
@@ -131,145 +131,109 @@
   (format "~a-~a" (object-name i) (Message-name m)))
 
 (define (Protocol-dump p client-test-out server-test-out)
-  (for ((i (Protocol-interfaces p))) (Interface-dump i client-test-out server-test-out)))
+  (for ((i (Protocol-interfaces p)))
+    (Interface-dump i #f client-test-out)
+    (Interface-dump i #t server-test-out)))
 
-(define (Interface-dump i client-test-out server-test-out)
-  (define name (Interface-name i))
-  (define client-module-path (interface-name->client-module-path name))
-  (define server-module-path (interface-name->server-module-path name))
-  (define client-path (interface-name->client-path name))
-  (define server-path (interface-name->server-path name))
-  (pretty-write `(require ,(string->symbol client-module-path)) client-test-out)
-  (pretty-write `(require ,(string->symbol server-module-path)) server-test-out)
+(define (Interface-dump i server? test-out)
+  (pretty-write `(require ,(interface-module i server?)) test-out)
   (call-with-output-file
-    client-path
-    (lambda (client-out)
-      (call-with-output-file
-        server-path
-        (lambda (server-out)
-          (Interface-dump* i server-out client-out))
-        #:mode 'text #:exists 'replace))
+    (interface-path i server?)
+    (curry Interface-dump* i server?)
     #:mode 'text #:exists 'replace))
 
-(define (Interface-get-requires i)
+(define (get-requires i server?)
+  (map
+   (lambda (name) (interface-name-filename name server?))
+   (remove (Interface-name i) (interface-new-interfaces i))))
+
+(define (get-provides i server?)
   (define request-messages (map Request-message (Interface-requests i)))
   (define event-messages (map Event-message (Interface-events i)))
-  (values
-   ;; client
-   (map
-    interface-name->client-filename
-    (remove
-     (object-name i)
-     (remove-duplicates
-      (for*/fold ((interface-names '()))
-                 ((m request-messages)
-                  (a (Message-args m)))
-        (match a
-          ((struct* Arg ((type "new_id")
-                         (interface-name (? string? interface-name))))
-           (cons interface-name interface-names))
-          (_ interface-names))))))
-    ;; server
-   '()))
+  (if server?
+      ;; server
+      (append
+       (list (object-pointer-name i)
+             (object-pointer/null-name i)
+             (object-descriptor-name i))
+       (if (empty? request-messages)
+           '()
+           `(struct-out ,(object-server-interface-name i)))
+       (for/list ((m event-messages))
+         (opcode-name i m))
+       (for/list ((m event-messages))
+         (opcode-version-name i m))
 
-(define (Interface-get-provides i)
-  (define request-messages (map Request-message (Interface-requests i)))
-  (define event-messages (map Event-message (Interface-events i)))
-  (values
-   ;; client
-   (append
-    (list (object-predicate-name i)
-          (object-pointer-name i)
-          (object-pointer/null-name i)
-          (object-descriptor-name i)
-          `(struct-out ,(object-client-interface-name i))
-          (object-add-listener-name i)
-          (object-get-listener-name i))
-    (for/list ((m request-messages))
-      (opcode-name i m))
-    (list (set-user-data-name i) (get-user-data-name i))
-    (if (and (not (Interface-has-destroy-message i))
-             (not (string=? (object-name i) "wl_display")))
-        (list (Interface-destroy-name i))
-        '())
-    (for/list ((m request-messages)) (stub-name i m))
-    )
-   ;; server
-   (append
-    (list (object-pointer-name i)
-          (object-pointer/null-name i)
-          (object-descriptor-name i))
-    (if (empty? request-messages)
-        '()
-        `(struct-out ,(object-server-interface-name i)))
-    (for/list ((m event-messages))
-      (opcode-name i m))
-    (for/list ((m event-messages))
-      (opcode-version-name i m))
+       (if (string=? (object-name i) "wl_display")
+           ;; NOTE: wl_display functions should be hand written.
+           '()
+           (for/list ((m event-messages))
+             ;; server event wrappers
+             (event-wrapper-name i m))))
+      ;; client
+      (append
+       (list (object-predicate-name i)
+             (object-pointer-name i)
+             (object-pointer/null-name i)
+             (object-descriptor-name i)
+             `(struct-out ,(object-client-interface-name i))
+             (object-add-listener-name i)
+             (object-get-listener-name i))
+       (for/list ((m request-messages))
+         (opcode-name i m))
+       (list (set-user-data-name i) (get-user-data-name i))
+       (if (and (not (Interface-has-destroy-message i))
+                (not (string=? (object-name i) "wl_display")))
+           (list (Interface-destroy-name i))
+           '())
+       (for/list ((m request-messages)) (stub-name i m))
+       )))
 
-    (if (string=? (object-name i) "wl_display")
-        ;; NOTE: wl_display functions should be hand written.
-        '()
-        (for/list ((m event-messages))
-          ;; server event wrappers
-          (event-wrapper-name i m))))))
-
-(define (Interface-dump* i server-out client-out)
+(define (Interface-dump* i server? out)
   (match i
     ((Interface (and about (About what name summary description)) ver requests events enums)
      (define event-messages (map Event-message events))
      (define request-messages (map Request-message requests))
 
-     (display server-header server-out)
-     (display client-header client-out)
+     (display (if server? server-header client-header) out)
 
-     (define-values (client-requires server-requires) (Interface-get-requires i))
-     (when (not (empty? client-requires))
-       (newline client-out)
-       (pretty-write `(require ,@client-requires) client-out))
-     (when (not (empty? server-requires))
-       (newline server-out)
-       (pretty-write `(require ,@server-requires) server-out))
-
-     (define-values (client-provides server-provides) (Interface-get-provides i))
-     (newline client-out)
-     (pretty-display `(provide ,@client-provides) client-out)
-     (newline server-out)
-     (pretty-display `(provide ,@server-provides) server-out)
-
-     (for ((out (list client-out server-out)))
+     (define requires (get-requires i server?))
+     (when (not (empty? requires))
        (newline out)
-       (pretty-display
-        `(define (,(object-predicate-name i) x)
-           (and
-            (cpointer? x)
-            (cpointer-has-tag? x ',(object-name i))))
-        out)
-       (pretty-display
-        `(define ,(object-pointer-name i) (_cpointer ',(object-name i)))
-        out)
-       (pretty-display
-        `(define ,(object-pointer/null-name i) (_cpointer/null ',(object-name i)))
-        out))
+       (pretty-write `(require ,@requires) out))
 
-     (pretty-display
-      `(define-wl-client ,(object-descriptor-name i) _wl_interface)
-      client-out)
-     (pretty-display
-      `(define-wl-server ,(object-descriptor-name i) _wl_interface)
-      server-out)
+     (pretty-display `(provide ,@(get-provides i server?)) out)
 
-     (for* ((out (list client-out server-out))
-            (e enums))
+     (newline out)
+     (pretty-display
+      `(define (,(object-predicate-name i) x)
+         (and
+          (cpointer? x)
+          (cpointer-has-tag? x ',(object-name i))))
+      out)
+     (pretty-display
+      `(define ,(object-pointer-name i) (_cpointer ',(object-name i)))
+      out)
+     (pretty-display
+      `(define ,(object-pointer/null-name i) (_cpointer/null ',(object-name i)))
+      out)
+
+     (if server?
+         (pretty-display
+          `(define-wl-server ,(object-descriptor-name i) _wl_interface)
+          out)
+         (pretty-display
+          `(define-wl-client ,(object-descriptor-name i) _wl_interface)
+          out))
+
+     (for ((e enums))
        (Enum-dump e name out))
 
-     (for ((out (list client-out server-out))
-           (server? (list #f #t))
-           (interface-type-name (list (object-client-interface-type-name i)
-                                      (object-server-interface-type-name i)))
-           (interface-pointer/null-name (list (object-client-interface-pointer/null-name i)
-                                              (object-server-interface-pointer/null-name i)))
-           (messages (list event-messages request-messages)))
+     (let ((interface-type-name
+            (if server?
+                (object-server-interface-type-name i)
+                (object-client-interface-type-name i)))
+           (messages (if server? request-messages event-messages)))
        (unless (empty? messages)
          (newline out)
          (if summary
@@ -290,76 +254,75 @@
                  (Message-name m)
                  (Message-type-form m i server?)))
              #:malloc-mode 'raw)
-          out)
+          out)))
 
-         (when (not server?)
-           (newline out)
-           (pretty-display
-            `(define (,(object-add-listener-name i) ,(object-name i) listener data)
-               (wl_proxy_add_listener
-                (cast ,(object-name i) ,(object-pointer-name i) _wl_proxy-pointer)
-                ;; NOTE: technically (cast listener _wl_registry_listener-pointer (void (**)(void)) )
-                listener
-                data))
-            out)
+     (when (not server?)
+       (newline out)
+       (pretty-display
+        `(define (,(object-add-listener-name i) ,(object-name i) listener data)
+           (wl_proxy_add_listener
+            (cast ,(object-name i) ,(object-pointer-name i) _wl_proxy-pointer)
+            listener
+            data))
+        out)
 
-           (newline out)
-           (pretty-display
-            `(define (,(object-get-listener-name i) ,(object-name i))
-               (cast
-                (wl_proxy_get_listener
-                 (cast ,(object-name i) ,(object-pointer-name i) _wl_proxy-pointer))
-                _pointer
-                ,interface-pointer/null-name))
-            out))))
+       (newline out)
+       (pretty-display
+        `(define (,(object-get-listener-name i) ,(object-name i))
+           (cast
+            (wl_proxy_get_listener
+             (cast ,(object-name i) ,(object-pointer-name i) _wl_proxy-pointer))
+            _pointer
+            ,(object-client-interface-pointer/null-name i)))
+        out))
 
      ;; Emit opcodes
-     (for ((out (list client-out server-out))
-           (messages (list request-messages event-messages)))
+     (let ((messages (if server? event-messages request-messages)))
        (unless (empty? messages)
          (newline out))
        (for ((opcode (in-naturals))
              (message messages))
          (pretty-display `(define ,(opcode-name i message) ,opcode) out)))
 
-     ;; Emit opcode versions
-     (unless (empty? event-messages)
-       (newline server-out)
-       (for ((message event-messages))
-         (pretty-display `(define ,(opcode-version-name i message) ,(Message-since message))
-                         server-out)))
+     (when server?
+       ;; Emit opcode versions
+       (unless (empty? event-messages)
+         (newline out)
+         (for ((message event-messages))
+           (pretty-display `(define ,(opcode-version-name i message) ,(Message-since message))
+                           out)))
 
-     ;; server event wrappers
-     (for ((m event-messages))
-       ;; NOTE: wl_display functions should be hand written.
-       (unless (string=? name "wl_display")
-         (Message-wrapper m i server-out)))
+       ;; server event wrappers
+       (for ((m event-messages))
+         ;; NOTE: wl_display functions should be hand written.
+         (unless (string=? name "wl_display")
+           (Message-wrapper m i out))))
 
-     ;; client
-     (newline client-out)
+     (when (not server?)
+       (newline out)
 
-     (define upcast-to-wl_proxy
-       `(cast ,name ,(interface-name->pointer-name name) _wl_proxy-pointer))
+       (define upcast-to-wl_proxy
+         `(cast ,name ,(interface-name->pointer-name name) _wl_proxy-pointer))
 
-     (pretty-display
-      `(define (,(set-user-data-name i) ,name user-data)
-         (wl_proxy_set_user_data ,upcast-to-wl_proxy user-data))
-      client-out)
-     (newline client-out)
-     (pretty-display
-      `(define (,(get-user-data-name i) ,name)
-         (wl_proxy_set_user_data ,upcast-to-wl_proxy))
-      client-out)
-
-     (when (and (not (Interface-has-destroy-message i))
-                (not (string=? name "wl_display")))
-       (newline client-out)
        (pretty-display
-        `(define (,(Interface-destroy-name i) ,name)
-           (wl_proxy_destroy ,upcast-to-wl_proxy))
-        client-out))
-     (for ((m request-messages))
-       (Message-stub m i client-out))
+        `(define (,(set-user-data-name i) ,name user-data)
+           (wl_proxy_set_user_data ,upcast-to-wl_proxy user-data))
+        out)
+       (newline out)
+       (pretty-display
+        `(define (,(get-user-data-name i) ,name)
+           (wl_proxy_set_user_data ,upcast-to-wl_proxy))
+        out)
+
+       (when (and (not (Interface-has-destroy-message i))
+                  (not (string=? name "wl_display")))
+         (newline out)
+         (pretty-display
+          `(define (,(Interface-destroy-name i) ,name)
+             (wl_proxy_destroy ,upcast-to-wl_proxy))
+          out))
+       (for ((m request-messages))
+         (Message-stub m i out)))
 
      )))
 
