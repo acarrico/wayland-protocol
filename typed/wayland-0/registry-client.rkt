@@ -8,7 +8,8 @@
          RegistryPointer?
 
          registry-add-listener
-         registry-get-listener)
+         registry-get-listener
+         registry-destroy)
 
 (require typed/racket/unsafe
          racket/match)
@@ -40,7 +41,8 @@
                                  RegistryListener))
   (wl_registry-add-listener (-> RegistryPointer RegistryListener Pointer Integer))
   ((wl_registry-get-listener registry-get-listener)
-   (-> RegistryPointer (Option RegistryListener))))
+   (-> RegistryPointer (Option RegistryListener)))
+  ((wl_registry-destroy registry-destroy) (-> RegistryPointer Void)))
 
 (: registry-add-listener
    (-> RegistryPointer RegistryHandleGlobal RegistryHandleGlobalRemove Pointer

@@ -62,4 +62,5 @@
 
   (display-roundtrip dp)
   (display-disconnect dp)
-  (free (cast rl Pointer)))
+  (free (cast rl Pointer))
+  (registry-destroy rp))
