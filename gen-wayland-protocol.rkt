@@ -5,6 +5,7 @@
 (require racket/list)
 
 (require "generator/xml-util.rkt")
+(require "generator/wayland-ast.rkt")
 (require "gen-libwayland-client.rkt")
 (require "gen-libwayland-server.rkt")
 (require "gen-libc.rkt")
@@ -29,8 +30,6 @@
     (_
      (values (About what name #f #f) content))))
 
-(struct About (what name summary description) #:transparent)
-
 (define (Protocol-dump p client-test-out server-test-out)
   (for ((i (Protocol-interfaces p))) (Interface-dump i client-test-out server-test-out)))
 
@@ -53,8 +52,6 @@
       (_ (error "Protocol-parse: expected interface elements"))))
 
   (Protocol name (map Interface-parse interface-elements)))
-
-(struct Protocol (name interfaces) #:transparent)
 
 (define (Interface-parse elem)
   (define-values (attrs content) (parse-element elem 'interface))
@@ -444,8 +441,6 @@
           ;; server event wrappers
           (event-wrapper-name i m))))))
 
-(struct Interface (about version requests events enums) #:transparent)
-
 (define (Message-type-form m interface server?)
   (match m
     ((Message (About what message-name summary description) destructor? since args)
@@ -612,10 +607,6 @@
 
      )))
 
-(define (Message-name m) (About-name (Message-about m)))
-
-(struct Message (about destructor? since args) #:transparent)
-
 (define (Request-parse elem)
   (define-values (attrs content) (parse-element elem 'request))
   (define-values (about content*) (About-parse 'REQUEST attrs content))
@@ -626,8 +617,6 @@
             (string->number (or (maybe-find-attribute-value attrs 'since) "1"))
             (map Arg-parse content*))))
 
-(struct Request (message) #:transparent)
-
 (define (Event-parse elem)
   (define-values (attrs content) (parse-element elem 'event))
   (define-values (about content*) (About-parse 'EVENT attrs content))
@@ -636,8 +625,6 @@
             #f
             (string->number (or (maybe-find-attribute-value attrs 'since) "1"))
             (map Arg-parse content*))))
-
-(struct Event (message) #:transparent)
 
 (define (Enum-dump e interface-name out)
   (match e
@@ -663,8 +650,6 @@
         (maybe-find-attribute-value attrs 'since)
         (map parse-entry content*)))
 
-(struct Enum (about since entries) #:transparent)
-
 (define (Arg-parse elem)
   (define-values (attrs content) (parse-element elem 'arg))
   (define-values (about content*) (About-parse 'ARG attrs content))
@@ -689,10 +674,6 @@
        ("new_id" '_uint32)
        ("object" (string->symbol (format "~a-pointer" interface-name)))))))
 
-(define (Arg-name a) (About-name (Arg-about a)))
-
-(struct Arg (about type summary interface-name allow-null) #:transparent)
-
 (define (Entry-dump-comment e prefix out)
   (match e
     ((Entry (About what entry-name about-summary description) value summary since)
@@ -706,8 +687,6 @@
      (define name (format "~a-~a" prefix entry-name))
 
      (pretty-display `(define ,name ,value) out))))
-
-(struct Entry (about value summary since) #:transparent)
 
 (define (parse-entry elem)
   (define-values (attrs content) (parse-element elem 'entry))
