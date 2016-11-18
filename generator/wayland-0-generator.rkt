@@ -1,4 +1,4 @@
-#lang racket/base
+#lang at-exp racket/base
 
 (require "wayland-ast.rkt")
 (require racket/pretty)
@@ -63,8 +63,7 @@
 (define (interface-name->pointer-name/null s)
   (format "_~a-pointer/null" s))
 
-(define (object-name i)
-  (About-name (Interface-about i)))
+(define object-name Interface-name)
 
 (define (object-type-name i)
   (string-append "_" (object-name i)))
@@ -135,7 +134,7 @@
   (for ((i (Protocol-interfaces p))) (Interface-dump i client-test-out server-test-out)))
 
 (define (Interface-dump i client-test-out server-test-out)
-  (define name (About-name (Interface-about i)))
+  (define name (Interface-name i))
   (define client-module-path (interface-name->client-module-path name))
   (define server-module-path (interface-name->server-module-path name))
   (define client-path (interface-name->client-path name))

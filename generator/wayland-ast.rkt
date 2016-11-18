@@ -2,7 +2,7 @@
 
 (provide (struct-out About)
          (struct-out Protocol)
-         (struct-out Interface)
+         (struct-out Interface) Interface-name
          (struct-out Message) Message-name
          (struct-out Request)
          (struct-out Event)
@@ -15,6 +15,7 @@
 (struct Protocol (name interfaces) #:transparent)
 
 (struct Interface (about version requests events enums) #:transparent)
+(define (Interface-name i) (About-name (Interface-about i)))
 
 (struct Message (about destructor? since args) #:transparent)
 (define (Message-name m) (About-name (Message-about m)))
