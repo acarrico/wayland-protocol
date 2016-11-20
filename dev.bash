@@ -26,6 +26,10 @@ function build  () {
   racket gen-wayland-protocol.rkt
 }
 
+function client-test () {
+  racket wayland-0/generated/client-test.rkt
+}
+
 # To start weston with software rendering (if default backend is
 # acting up):
 function weston-pixman () {
