@@ -5,6 +5,9 @@
 (provide (struct-out wl_interface)
          _wl_interface
          _wl_interface-pointer
+         (struct-out wl_array)
+         _wl_array
+         _wl_array-pointer
          _wl_fixed
          _wl_argument
          _wl_argument-pointer
