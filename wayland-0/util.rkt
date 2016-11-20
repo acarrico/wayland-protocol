@@ -5,6 +5,7 @@
 (provide (struct-out wl_interface)
          _wl_interface
          _wl_interface-pointer
+         _wl_fixed
          _wl_argument
          _wl_argument-pointer
          set-wl_argument-i!
