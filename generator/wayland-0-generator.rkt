@@ -145,7 +145,7 @@
 (define (get-requires i server?)
   (map
    (lambda (name) (interface-name-filename name server?))
-   (remove (Interface-name i) (interface-new-interfaces i))))
+   (remove (Interface-name i) (interface-interfaces i))))
 
 (define (get-provides i server?)
   (define request-messages (map Request-message (Interface-requests i)))
