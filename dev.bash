@@ -26,6 +26,10 @@ function build  () {
   racket gen-wayland-protocol.rkt
 }
 
+function raco-test () {
+  raco test generator/test.rtk
+}
+
 function client-test () {
   racket wayland-0/generated/client-test.rkt
 }
