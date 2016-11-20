@@ -2,17 +2,13 @@
 (require racket/match)
 (require racket/generic)
 
+(require "config.rkt")
 (require "generator/wayland-ast.rkt")
 (require "generator/wayland-parser.rkt")
 (require "generator/wayland-0-generator.rkt")
 (require "gen-libwayland-client.rkt")
 (require "gen-libwayland-server.rkt")
 (require "gen-libc.rkt")
-
-;; Configuration:
-(define wayland-share (or (getenv "wayland_share") "/usr/share/wayland/"))
-(define wayland-lib (or (getenv "wayland_lib") ""))
-(define libc-dir (or (getenv "libc_lib") ""))
 
 (define test-header
   "\
