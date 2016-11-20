@@ -526,7 +526,7 @@
        ("array" '_wl_array-pointer)
        ("fd" '_int32)
        ("new_id" '_uint32)
-       ("object" (string->symbol (format "~a-pointer" interface-name)))))))
+       ("object" (string->symbol (format "_~a-pointer" interface-name)))))))
 
 (define (Entry-dump-comment e prefix out)
   (match e
