@@ -1,6 +1,8 @@
 #lang at-exp racket/base
 
-(require "wayland-ast.rkt")
+(require "wayland-ast.rkt"
+         "wayland-0-types.rkt")
+
 (require racket/pretty)
 (require racket/list)
 (require racket/match)
@@ -53,6 +55,9 @@
 
 (define (interface-path i server?)
   (format "wayland-0/generated/~a" (interface-filename i server?)))
+
+(define (interface-typed-path i server?)
+  (format "typed/wayland-0/generated/~a" (interface-filename i server?)))
 
 (define (interface-name->object-descriptor-name s)
   (format "~a_interface" s))
@@ -140,7 +145,12 @@
   (call-with-output-file
     (interface-path i server?)
     (curry Interface-dump* i server?)
-    #:mode 'text #:exists 'replace))
+    #:mode 'text #:exists 'replace)
+  (when (not server?)
+    (call-with-output-file
+      (interface-typed-path i server?)
+      (curry interface-typed-client-dump i)
+      #:mode 'text #:exists 'replace)))
 
 (define (get-requires i server?)
   (map

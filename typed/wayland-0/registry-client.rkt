@@ -15,13 +15,7 @@
          racket/match)
 
 (require "common.rkt")
-
-(define RegistryPointer? (make-predicate RegistryPointer))
-
-(unsafe-require/typed "../../wayland-0/generated/wl_registry-client.rkt"
-  (#:opaque RegistryListener wl_registry_listener?))
-
-(define RegistryListener? (make-predicate RegistryListener))
+(require "generated/wl_registry-client.rkt")
 
 (define-type Name Integer)
 (define-type Interface String)
