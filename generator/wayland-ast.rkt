@@ -3,6 +3,7 @@
 (provide (struct-out About)
          (struct-out Protocol)
          (struct-out Interface) Interface-name
+         interface-nick
          interface-new-interfaces
          interface-interfaces
          (struct-out Message) Message-name
@@ -17,7 +18,8 @@
          arg-interface
          (struct-out Entry))
 
-(require racket/list)
+(require racket/list
+         racket/string)
 
 (struct About (what name summary description) #:transparent)
 
@@ -25,6 +27,7 @@
 
 (struct Interface (about version requests events enums) #:transparent)
 (define (Interface-name i) (About-name (Interface-about i)))
+(define (interface-nick i) (string-trim (Interface-name i) "wl_" #:right? #f))
 
 ;; The names of the interfaces of the new objects sent by this
 ;; interface.
