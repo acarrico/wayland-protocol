@@ -23,6 +23,9 @@ function build  () {
   if test ! -d wayland-0/generated; then
     mkdir wayland-0/generated
   fi
+  if test ! -d typed/wayland-0/generated; then
+    mkdir typed/wayland-0/generated
+  fi
   racket gen-wayland-protocol.rkt
 }
 
