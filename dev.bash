@@ -27,7 +27,7 @@ function build  () {
 }
 
 function raco-test () {
-  raco test generator/test.rtk
+  raco test generator/test.rkt
 }
 
 function client-test () {
