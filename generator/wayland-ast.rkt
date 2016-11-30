@@ -4,11 +4,25 @@
          (struct-out Protocol)
          (struct-out Interface) Interface-name
          interface-nick
+         interface-name->type
+         interface-type
+         interface-name->option-type
+         interface-name->ffi-type
+         interface-ffi-type
+         interface-name->ffi-pointer
+         interface-ffi-pointer
+         interface-name->ffi-pointer/null
+         interface-ffi-pointer/null
+         interface-name->untyped-client-module
+         interface-untyped-client-module
+         interface-name->typed-client-module
+         interface-typed-client-module
          interface-new-interfaces
          interface-interfaces
          (struct-out Message) Message-name
          message-new-interface
          message-interfaces
+         message-bind?
          (struct-out Request)
          (struct-out Event)
          (struct-out Enum)
@@ -16,9 +30,12 @@
          arg-new-id?
          arg-new-interface
          arg-interface
+         arg-bind?
+         arg-trtype
          (struct-out Entry))
 
 (require racket/list
+         racket/match
          racket/string)
 
 (struct About (what name summary description) #:transparent)
@@ -27,7 +44,36 @@
 
 (struct Interface (about version requests events enums) #:transparent)
 (define (Interface-name i) (About-name (Interface-about i)))
-(define (interface-nick i) (string-trim (Interface-name i) "wl_" #:right? #f))
+(define (interface-name->nick s) (string-trim s "wl_" #:right? #f))
+(define (interface-nick i) (interface-name->nick (Interface-name i)))
+(define (interface-name->type s)
+  (string->symbol (string-titlecase (interface-name->nick s))))
+(define (interface-type i)
+  (interface-name->type (Interface-name i)))
+(define (interface-name->option-type s)
+  `(Option ,(interface-name->type s)))
+(define (interface-name->ffi-type s)
+  (format "_~a" s))
+(define (interface-ffi-type i)
+  (interface-name->ffi-type (Interface-name i)))
+(define (interface-name->ffi-pointer s)
+  (format "_~a-pointer" s))
+(define (interface-ffi-pointer i)
+  (interface-name->ffi-pointer (Interface-name i)))
+(define (interface-name->ffi-pointer/null s)
+  (format "_~a-pointer/null" s))
+(define (interface-ffi-pointer/null i)
+  (interface-name->ffi-pointer/null (Interface-name i)))
+
+(define (interface-name->untyped-client-module name)
+  (string->symbol (format "wayland-0/generated/~a-client" name)))
+(define (interface-untyped-client-module i)
+  (interface-name->untyped-client-module (Interface-name i)))
+
+(define (interface-name->typed-client-module name)
+  (string->symbol (format "typed/wayland-0/generated/~a-client" name)))
+(define (interface-typed-client-module i)
+  (interface-name->typed-client-module (Interface-name i)))
 
 ;; The names of the interfaces of the new objects sent by this
 ;; interface.
@@ -62,6 +108,12 @@
   (remove-duplicates
    (filter-map arg-interface (Message-args m))))
 
+;; Does the message bind a new object? If so the sender will have to
+;; give the interface and version.
+(define (message-bind? m)
+  (for/or ((arg (Message-args m)))
+    (arg-bind? arg)))
+
 (struct Request (message) #:transparent)
 
 (struct Event (message) #:transparent)
@@ -90,5 +142,22 @@
 ;; (: arg-interface (-> Arg (Option String))
 (define (arg-interface a)
   (if (arg-object? a) (Arg-interface-name a) #f))
+
+;; Does the arg bind a new object? If so the sender will have to give
+;; the interface and version.
+(define (arg-bind? a)
+  (and (arg-new-id? a) (not (Arg-interface-name a))))
+
+;; NOTE: trtype == Typed Racket type, vs. Arg-type above
+(define (arg-trtype a)
+  (match (Arg-type a)
+    ("int" 'Int32)
+    ("uint" 'UInt32)
+    ("fixed" 'Fixed)
+    ("string" 'String)
+    ("array" 'WlArray)
+    ("fd" 'FileDescriptor)
+    ("new_id" 'Object)
+    ("object" 'Object)))
 
 (struct Entry (about value summary since) #:transparent)

@@ -62,31 +62,14 @@
 (define (interface-name->object-descriptor-name s)
   (format "~a_interface" s))
 
-(define (interface-name->pointer-name s)
-  (format "_~a-pointer" s))
-
-(define (interface-name->pointer-name/null s)
-  (format "_~a-pointer/null" s))
-
-(define object-name Interface-name)
-
-(define (object-type-name i)
-  (string-append "_" (object-name i)))
-
 (define (object-predicate-name i)
-  (string-append (object-name i) "?"))
-
-(define (object-pointer-name i)
-  (string-append (object-type-name i) "-pointer"))
-
-(define (object-pointer/null-name i)
-  (string-append (object-type-name i) "-pointer/null"))
+  (string-append (Interface-name i) "?"))
 
 (define (object-descriptor-name i)
-  (interface-name->object-descriptor-name (object-name i)))
+  (interface-name->object-descriptor-name (Interface-name i)))
 
 (define (object-client-interface-name i)
-  (format "~a_listener" (object-name i)))
+  (format "~a_listener" (Interface-name i)))
 (define (object-client-interface-type-name i)
   (format "_~a" (object-client-interface-name i)))
 (define (object-client-interface-pointer-name i)
@@ -95,14 +78,14 @@
   (format "~a/null" (object-client-interface-pointer-name i)))
 
 (define (object-add-listener-name i)
-  (format "~a-add-listener" (object-name i)))
+  (format "~a-add-listener" (Interface-name i)))
 
 (define (object-get-listener-name i)
-  (format "~a-get-listener" (object-name i)))
+  (format "~a-get-listener" (Interface-name i)))
 
 ;; NOTE: struct _*_interface in C.
 (define (object-server-interface-name i)
-  (format "~a_implementation" (object-name i)))
+  (format "~a_implementation" (Interface-name i)))
 (define (object-server-interface-type-name i)
   (format "_~a" (object-server-interface-name i)))
 (define (object-server-interface-pointer-name i)
@@ -111,29 +94,29 @@
   (format "~a/null" (object-server-interface-pointer-name i)))
 
 (define (opcode-name i m)
-  (format "~a-~a-opcode" (object-name i) (Message-name m)))
+  (format "~a-~a-opcode" (Interface-name i) (Message-name m)))
 
 (define (opcode-version-name i m)
-  (format "~a-~a-since-version" (object-name i) (Message-name m)))
+  (format "~a-~a-since-version" (Interface-name i) (Message-name m)))
 
 (define (event-wrapper-name i m)
-  (format "~a-send-~a" (object-name i) (Message-name m)))
+  (format "~a-send-~a" (Interface-name i) (Message-name m)))
 
 (define (set-user-data-name i)
-  (format "~a-set-user-data" (object-name i)))
+  (format "~a-set-user-data" (Interface-name i)))
 
 (define (get-user-data-name i)
-  (format "~a-get-user-data" (object-name i)))
+  (format "~a-get-user-data" (Interface-name i)))
 
 (define (Interface-has-destroy-message i)
   (for/or ((m (map Request-message (Interface-requests i))))
     (string=? (Message-name m) "destroy")))
 
 (define (Interface-destroy-name i)
-  (format "~a-destroy" (object-name i)))
+  (format "~a-destroy" (Interface-name i)))
 
 (define (stub-name i m)
-  (format "~a-~a" (object-name i) (Message-name m)))
+  (format "~a-~a" (Interface-name i) (Message-name m)))
 
 (define (Protocol-dump p client-test-out server-test-out)
   (for ((i (Protocol-interfaces p)))
@@ -164,8 +147,8 @@
   (if server?
       ;; server
       (append
-       (list (object-pointer-name i)
-             (object-pointer/null-name i)
+       (list (interface-ffi-pointer i)
+             (interface-ffi-pointer/null i)
              (object-descriptor-name i))
        (if (empty? request-messages)
            '()
@@ -175,7 +158,7 @@
        (for/list ((m event-messages))
          (opcode-version-name i m))
 
-       (if (string=? (object-name i) "wl_display")
+       (if (string=? (Interface-name i) "wl_display")
            ;; NOTE: wl_display functions should be hand written.
            '()
            (for/list ((m event-messages))
@@ -184,8 +167,8 @@
       ;; client
       (append
        (list (object-predicate-name i)
-             (object-pointer-name i)
-             (object-pointer/null-name i)
+             (interface-ffi-pointer i)
+             (interface-ffi-pointer/null i)
              (object-descriptor-name i))
        (if (empty? event-messages)
            '()
@@ -197,7 +180,7 @@
          (opcode-name i m))
        (list (set-user-data-name i) (get-user-data-name i))
        (if (and (not (Interface-has-destroy-message i))
-                (not (string=? (object-name i) "wl_display")))
+                (not (string=? (Interface-name i) "wl_display")))
            (list (Interface-destroy-name i))
            '())
        (for/list ((m request-messages)) (stub-name i m))
@@ -223,13 +206,13 @@
       `(define (,(object-predicate-name i) x)
          (and
           (cpointer? x)
-          (cpointer-has-tag? x ',(object-name i))))
+          (cpointer-has-tag? x ',(Interface-name i))))
       out)
      (pretty-display
-      `(define ,(object-pointer-name i) (_cpointer ',(object-name i)))
+      `(define ,(interface-ffi-pointer i) (_cpointer ',(Interface-name i)))
       out)
      (pretty-display
-      `(define ,(object-pointer/null-name i) (_cpointer/null ',(object-name i)))
+      `(define ,(interface-ffi-pointer/null i) (_cpointer/null ',(Interface-name i)))
       out)
 
      (if server?
@@ -274,19 +257,19 @@
                 (not (empty? event-messages)))
        (newline out)
        (pretty-display
-        `(define (,(object-add-listener-name i) ,(object-name i) listener data)
+        `(define (,(object-add-listener-name i) ,(Interface-name i) listener data)
            (wl_proxy_add_listener
-            (cast ,(object-name i) ,(object-pointer-name i) _wl_proxy-pointer)
+            (cast ,(Interface-name i) ,(interface-ffi-pointer i) _wl_proxy-pointer)
             listener
             data))
         out)
 
        (newline out)
        (pretty-display
-        `(define (,(object-get-listener-name i) ,(object-name i))
+        `(define (,(object-get-listener-name i) ,(Interface-name i))
            (cast
             (wl_proxy_get_listener
-             (cast ,(object-name i) ,(object-pointer-name i) _wl_proxy-pointer))
+             (cast ,(Interface-name i) ,(interface-ffi-pointer i) _wl_proxy-pointer))
             _pointer
             ,(object-client-interface-pointer/null-name i)))
         out))
@@ -317,7 +300,7 @@
        (newline out)
 
        (define upcast-to-wl_proxy
-         `(cast ,name ,(interface-name->pointer-name name) _wl_proxy-pointer))
+         `(cast ,name ,(interface-name->ffi-pointer name) _wl_proxy-pointer))
 
        (pretty-display
         `(define (,(set-user-data-name i) ,name user-data)
@@ -349,7 +332,7 @@
           (for/fold ((types (reverse
                              (if server?
                                  (list '_wl_client-pointer '_wl_resource-pointer)
-                                 (list '_pointer (object-pointer-name interface))))))
+                                 (list '_pointer (interface-ffi-pointer interface))))))
                     ((arg (Message-args m)))
             (match arg
               ((Arg about type summary interface-name allow-null)
@@ -468,7 +451,7 @@
          (reverse reverse-forms)))
 
      (pretty-display
-      `(define (,(stub-name interface m) ,(object-name interface) ,@param-names)
+      `(define (,(stub-name interface m) ,(Interface-name interface) ,@param-names)
          ,allocate-args-form
          ,@initialize-args-forms
          ,(match new-id-arg?
@@ -476,8 +459,8 @@
                            (interface-name interface-name)))
               `(define ,arg-name
                  (wl_proxy_marshal_array_constructor
-                  (cast ,(object-name interface)
-                        ,(object-pointer-name interface)
+                  (cast ,(Interface-name interface)
+                        ,(interface-ffi-pointer interface)
                         _wl_proxy-pointer)
                   ,(opcode-name interface m)
                   args
@@ -486,19 +469,19 @@
                        "interface"))))
             (_
              `(wl_proxy_marshal_array
-               ,(object-name interface)
+               ,(Interface-name interface)
                ,(opcode-name interface m)
                args)))
          (free args)
          ,@(if destructor?
-               `((wl_proxy_destroy ,(object-name interface)))
+               `((wl_proxy_destroy ,(Interface-name interface)))
                '())
          ,(match new-id-arg?
             ((struct* Arg ((about (struct* About ((name arg-name))))
                            (interface-name interface-name)))
              `(cast ,arg-name _wl_proxy-pointer/null
                     ,(if interface-name
-                         (interface-name->pointer-name/null interface-name)
+                         (interface-name->ffi-pointer/null interface-name)
                          '_void)))
             (_
              '(void))))

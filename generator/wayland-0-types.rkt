@@ -6,14 +6,34 @@
 (require racket/match)
 (require racket/function)
 (require racket/format)
+(require racket/string)
 
 (provide interface-typed-client-dump)
 
+(struct Comment (text)
+  #:methods gen:custom-write
+  ((define (write-proc comment out mode)
+     (display @~a{; @|(Comment-text comment)|
+                  } out))))
+
+(struct Comment2 (text)
+  #:methods gen:custom-write
+  ((define (write-proc comment out mode)
+     (display @~a{;; @|(Comment-text comment)|
+                  } out))))
+
+(struct BlockComment (text)
+  #:methods gen:custom-write
+  ((define (write-proc comment out mode)
+     (display @~a{#|@|(BlockComment-text comment)||#} out))))
+
 (define (interface-typed-client-dump i out)
   (match-define (Interface (About what name summary description) version requests events enums) i)
+  (define requires
+    (map interface-name->typed-client-module (interface-interfaces i)))
   (define nick (interface-nick i))
-  (define untyped-module @~a{wayland-0/generated/@|name|-client})
-  (define type @~a{@(string-titlecase nick)Pointer})
+  (define untyped-module @(interface-untyped-client-module i))
+  (define type @~a{@(string-titlecase nick)})
   (define predicate @~a{@|type|?})
   (define listener-type @~a{@(string-titlecase nick)Listener})
   (define listener-predicate @~a{@|listener-type|?})
@@ -29,17 +49,101 @@
          racket/match
          typed/wayland-0/common)
 
+@(pretty-format `(require ,@requires) #:mode 'write)
+
 (provide @|type|
          @|predicate|
+         downcast-@|type|
          @|listener-type|
          @|listener-predicate|
          )
 
+(unsafe-require/typed @|untyped-module|
+  (#:opaque @|type| @|name|?))
+
 (define @|predicate| (make-predicate @|type|))
 
+(module downcast racket/base
+  (provide downcast-@|type|)
+  (require ffi/unsafe @|untyped-module|)
+  (define (downcast-@|type| p)
+    (cast p _pointer @(interface-ffi-pointer i))))
+
+(require/typed 'downcast
+  (downcast-@|type| (-> Pointer @|type|)))
+
 (unsafe-require/typed @|untyped-module|
-  (#:opaque RegistryListener @|name|_listener?))
+  (#:opaque @|listener-type| @|name|_listener?))
 
 (define @|listener-predicate| (make-predicate @|listener-type|))
+
 }
-out))
+out)
+
+(for ((m request-messages))
+  (Message-stub m i out))
+)
+
+(define (interface-name->object-descriptor-name s)
+  (format "~a_interface" s))
+
+(define (opcode-name i m)
+  (format "~a-~a-opcode" (Interface-name i) (Message-name m)))
+
+(define (stub-name i m)
+  (string->symbol
+   (format "~a-~a" (Interface-name i) (Message-name m))))
+
+(define (typed-stub-name i m)
+  (string->symbol
+   (format "~a-~a"
+     (interface-nick i)
+     (string-replace (Message-name m) "_" "-"))))
+
+(define (gen-initialize-arg-form type index init-form)
+  (match type
+    ("int" `(set-wl_argument-i! (ptr-ref args _wl_argument ,index) ,init-form))
+    ("uint" `(set-wl_argument-u! (ptr-ref args _wl_argument ,index) ,init-form))
+    ("fixed" `(set-wl_argument-f! (ptr-ref args _wl_argument ,index) ,init-form))
+    ("string" `(set-wl_argument-s! (ptr-ref args _wl_argument ,index) ,init-form))
+    ("array" `(set-wl_argument-a! (ptr-ref args _wl_argument ,index) ,init-form))
+    ("fd" `(set-wl_argument-h! (ptr-ref args _wl_argument ,index) ,init-form))
+    ("new_id" `(set-wl_argument-o! (ptr-ref args _wl_argument ,index) ,init-form))
+    ("object" `(set-wl_argument-o! (ptr-ref args _wl_argument ,index) ,init-form))))
+
+(define (new-id-arg-result-type a)
+  (define name (Arg-interface-name a))
+  (if name
+      (interface-name->option-type name)
+      '(Option Proxy)))
+
+(define (Message-stub m interface out)
+  (newline out)
+
+  (match-define (Message (About what message-name summary description) destructor? since args) m)
+
+  (define new-id-arg?
+    (for/or ((a args)) (and (arg-new-id? a) a)))
+
+  (define signature
+    (append
+     '(->)
+     (list (interface-type interface))
+     (append*
+      (map (lambda (a)
+             (list (BlockComment (Arg-name a))
+                   (arg-trtype a)))
+           (filter (compose not arg-new-id?) args)))
+     (if (message-bind? m) `(Interface Version) '())
+     (if new-id-arg?
+         (list (new-id-arg-result-type new-id-arg?))
+         '(Void))))
+
+  (pretty-write
+   `(require/typed ,(interface-untyped-client-module interface)
+      ((,(stub-name interface m) ,(typed-stub-name interface m)) ,signature))
+   out)
+  (pretty-write
+   `(provide ,(typed-stub-name interface m))
+   out)
+  )

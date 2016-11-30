@@ -4,12 +4,13 @@
          RegistryListener?
          RegistryHandleGlobal
          RegistryHandleGlobalRemove
-         RegistryPointer
-         RegistryPointer?
+         Registry
+         Registry?
 
          registry-add-listener
          registry-get-listener
-         registry-destroy)
+         registry-destroy
+         registry-bind)
 
 (require typed/racket/unsafe
          racket/match)
@@ -22,10 +23,10 @@
 (define-type Version Integer)
 
 ;; (_fun _pointer _wl_registry-pointer _uint32 _string/utf-8 _uint32 -> _void))
-(define-type RegistryHandleGlobal (-> Pointer RegistryPointer Name Interface Version Void))
+(define-type RegistryHandleGlobal (-> Pointer Registry Name Interface Version Void))
 
 ;; (global_remove (_fun _pointer _wl_registry-pointer _uint32 -> _void)))
-(define-type RegistryHandleGlobalRemove (-> Pointer RegistryPointer Name Void))
+(define-type RegistryHandleGlobalRemove (-> Pointer Registry Name Void))
 
 (require/typed "../../wayland-0/generated/wl_registry-client.rkt"
   ;; ISSUE: importing c structs doesn't seem to work:
@@ -33,13 +34,14 @@
   (make-wl_registry_listener (-> RegistryHandleGlobal
                                  RegistryHandleGlobalRemove
                                  RegistryListener))
-  (wl_registry-add-listener (-> RegistryPointer RegistryListener Pointer Integer))
+  (wl_registry-add-listener (-> Registry RegistryListener Pointer Integer))
   ((wl_registry-get-listener registry-get-listener)
-   (-> RegistryPointer (Option RegistryListener)))
-  ((wl_registry-destroy registry-destroy) (-> RegistryPointer Void)))
+   (-> Registry (Option RegistryListener)))
+  ((wl_registry-destroy registry-destroy) (-> Registry Void))
+  )
 
 (: registry-add-listener
-   (-> RegistryPointer RegistryHandleGlobal RegistryHandleGlobalRemove Pointer
+   (-> Registry RegistryHandleGlobal RegistryHandleGlobalRemove Pointer
        ;; NOTE: We return pointer for memory management.
        (U RegistryListener
           ErrorProxyHasListener)))

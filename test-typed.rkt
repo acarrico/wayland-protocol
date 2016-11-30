@@ -10,11 +10,11 @@
 
 (let ()
   (define dp (match (display-connect #f)
-               ((? DisplayPointer? (var dp)) dp)
+               ((? Display? (var dp)) dp)
                ((var errno) (error "connect: " errno))))
 
   (define rp (match (display-get-registry dp)
-               ((? RegistryPointer? (var rp)) rp)
+               ((? Registry? (var rp)) rp)
                ((var errno) (error "register: " errno))))
 
   (: globals (HashTable Integer Symbol))
@@ -55,7 +55,7 @@
   (printf "display sync request\n")
   (callback-add-listener
    (match (display-sync dp)
-     ((? CallbackPointer? (var callback)) callback)
+     ((? Callback? (var callback)) callback)
      ((var errno) (error "sync: " errno)))
    handle-done
    (cast dp Pointer))

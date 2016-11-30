@@ -1,7 +1,7 @@
 #lang typed/racket/base
 
-(provide CallbackPointer
-         CallbackPointer?
+(provide Callback
+         Callback?
          CallbackListener
          CallbackListener?
          CallbackDone
@@ -11,33 +11,24 @@
 
 (require typed/racket/unsafe
          racket/match
-         "common.rkt")
-
-(unsafe-require/typed "../../wayland-0/generated/wl_callback-client.rkt"
-  (#:opaque CallbackPointer wl_callback?))
-
-(define CallbackPointer? (make-predicate CallbackPointer))
-
-(unsafe-require/typed "../../wayland-0/generated/wl_callback-client.rkt"
-  (#:opaque CallbackListener wl_callback_listener?))
-
-(define CallbackListener? (make-predicate CallbackListener))
+         "common.rkt"
+         "generated/wl_callback-client.rkt")
 
 ;; (_fun _pointer _wl_callback-pointer _uint32 -> _void)
-(define-type CallbackDone (-> Pointer CallbackPointer UInt32 Void))
+(define-type CallbackDone (-> Pointer Callback UInt32 Void))
 
 (require/typed "../../wayland-0/generated/wl_callback-client.rkt"
   ;; ISSUE: importing c structs doesn't seem to work:
   ;; (#:struct wl_registry_listener ((global : HandleGlobal) (global_remove : HandleGlobalRemove))
   (make-wl_callback_listener (-> CallbackDone
                                  CallbackListener))
-  (wl_callback-add-listener (-> CallbackPointer CallbackListener Pointer Integer))
+  (wl_callback-add-listener (-> Callback CallbackListener Pointer Integer))
   ((wl_callback-get-listener callback-get-listener)
-   (-> CallbackPointer (Option CallbackListener)))
-  ((wl_callback-destroy callback-destroy) (-> CallbackPointer Void)))
+   (-> Callback (Option CallbackListener)))
+  ((wl_callback-destroy callback-destroy) (-> Callback Void)))
 
 (: callback-add-listener
-   (-> CallbackPointer CallbackDone Pointer
+   (-> Callback CallbackDone Pointer
        (U CallbackListener ErrorProxyHasListener)))
 (define (callback-add-listener cbp done data)
   (define listener (make-wl_callback_listener done))

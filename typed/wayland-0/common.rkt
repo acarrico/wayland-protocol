@@ -9,19 +9,21 @@
          saved-errno
          free
          strerror
-         downcast-DisplayPointer
-         DisplayPointer
-         RegistryPointer)
+         Interface
+         Proxy
+         Version)
 
 (define-type UInt32 Exact-Nonnegative-Integer)
 
+(define-type Version UInt32)
+
 (require typed/racket/unsafe)
 
-(unsafe-require/typed "../../wayland-0/generated/wl_display-client.rkt"
-  (#:opaque DisplayPointer wl_display?))
+(unsafe-require/typed "../../wayland-0/util.rkt"
+  (#:opaque Interface wl_interface?))
 
-(unsafe-require/typed "../../wayland-0/generated/wl_registry-client.rkt"
-  (#:opaque RegistryPointer wl_registry?))
+(unsafe-require/typed "../../wayland-0/client.rkt"
+  (#:opaque Proxy wl_proxy?))
 
 (unsafe-require/typed ffi/unsafe
   (#:opaque Pointer cpointer?))
@@ -34,17 +36,6 @@
 
 (require/typed wayland-0/generated/libc
   (strerror (-> Integer String)))
-
-(module downcast racket/base
-  (provide downcast-DisplayPointer)
-  (require ffi/unsafe)
-  (require wayland-0/generated/wl_display-client)
-
-  (define (downcast-DisplayPointer d)
-    (cast d _pointer _wl_display-pointer)))
-
-(require/typed 'downcast
-  (downcast-DisplayPointer (-> Pointer DisplayPointer)))
 
 (struct Errno
   ((errno : Integer)
