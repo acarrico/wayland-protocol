@@ -5,6 +5,7 @@
 (provide
  _wl_proxy-pointer
  _wl_proxy-pointer/null
+ wl_proxy?
  ;; _wl_client-pointer
  ;; _wl_resource-pointer
  wl_proxy_marshal_array
@@ -30,6 +31,7 @@
 
 (define _wl_proxy-pointer (_cpointer 'wl_proxy))
 (define _wl_proxy-pointer/null (_cpointer/null 'wl_proxy))
+(define (wl_proxy? x) (and (cpointer? x) (cpointer-has-tag? x 'wl_proxy)))
 
 ;; NOTE: these are also defined in generated/wl_display-client.rkt,
 ;; which requires this module, so we must also define them here:
