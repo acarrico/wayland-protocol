@@ -32,6 +32,7 @@
 (require ffi/unsafe ffi/unsafe/define)
 
 (require wayland-0/generated/libwayland-client
+         typed/wayland-0/errno
          wayland-0/util
          wayland-0/private
          wayland-0/client)
@@ -479,10 +480,11 @@
          ,(match new-id-arg?
             ((struct* Arg ((about (struct* About ((name arg-name))))
                            (interface-name interface-name)))
-             `(cast ,arg-name _wl_proxy-pointer/null
-                    ,(if interface-name
-                         (interface-name->ffi-pointer/null interface-name)
-                         '_void)))
+             `(or ,(if interface-name
+                       `(cast ,arg-name _wl_proxy-pointer/null
+                              ,(interface-name->ffi-pointer/null interface-name))
+                       arg-name)
+                  (get-Errno)))
             (_
              '(void))))
 

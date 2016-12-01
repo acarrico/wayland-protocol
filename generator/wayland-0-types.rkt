@@ -47,6 +47,7 @@
 
 (require typed/racket/unsafe
          racket/match
+         typed/wayland-0/errno
          typed/wayland-0/common)
 
 @(pretty-format `(require ,@requires) #:mode 'write)
@@ -114,8 +115,8 @@ out)
 (define (new-id-arg-result-type a)
   (define name (Arg-interface-name a))
   (if name
-      (interface-name->option-type name)
-      '(Option Proxy)))
+      `(U ,(interface-name->type name) Errno)
+      '(U Proxy Errno)))
 
 (define (Message-stub m interface out)
   (newline out)
