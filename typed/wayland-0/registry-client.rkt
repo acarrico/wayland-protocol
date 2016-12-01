@@ -20,7 +20,6 @@
 
 (define-type Name Integer)
 (define-type Interface String)
-(define-type Version Integer)
 
 ;; (_fun _pointer _wl_registry-pointer _uint32 _string/utf-8 _uint32 -> _void))
 (define-type RegistryHandleGlobal (-> Pointer Registry Name Interface Version Void))
