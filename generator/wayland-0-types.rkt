@@ -19,7 +19,7 @@
 (struct Comment2 (text)
   #:methods gen:custom-write
   ((define (write-proc comment out mode)
-     (display @~a{;; @|(Comment-text comment)|
+     (display @~a{;; @|(Comment2-text comment)|
                   } out))))
 
 (struct BlockComment (text)
