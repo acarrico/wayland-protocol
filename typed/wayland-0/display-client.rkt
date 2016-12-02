@@ -1,8 +1,8 @@
 #lang typed/racket/base
 
 (provide Display
-         Display?
-         downcast-Display
+         display?
+         pointer->display
          display-connect
          display-disconnect
          display-roundtrip
@@ -19,9 +19,6 @@
   (wl_display_disconnect (-> Display Void))
   (wl_display_roundtrip (-> Display Integer))
   )
-
-(require (only-in "generated/wl_callback-client.rkt" Callback))
-(require (only-in "generated/wl_registry-client.rkt" Registry))
 
 ;; ISSUE: libwayland ignores the name if WAYLAND_SOCKET is set.
 (: display-connect (-> (Option String) (U Display Errno)))

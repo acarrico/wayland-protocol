@@ -109,10 +109,6 @@
 (define (get-user-data-name i)
   (format "~a-get-user-data" (Interface-name i)))
 
-(define (Interface-has-destroy-message i)
-  (for/or ((m (map Request-message (Interface-requests i))))
-    (string=? (Message-name m) "destroy")))
-
 (define (Interface-destroy-name i)
   (format "~a-destroy" (Interface-name i)))
 
@@ -180,7 +176,7 @@
        (for/list ((m request-messages))
          (opcode-name i m))
        (list (set-user-data-name i) (get-user-data-name i))
-       (if (and (not (Interface-has-destroy-message i))
+       (if (and (not (interface-has-destroy-message i))
                 (not (string=? (Interface-name i) "wl_display")))
            (list (Interface-destroy-name i))
            '())
@@ -313,7 +309,7 @@
            (wl_proxy_set_user_data ,upcast-to-wl_proxy))
         out)
 
-       (when (and (not (Interface-has-destroy-message i))
+       (when (and (not (interface-has-destroy-message i))
                   (not (string=? name "wl_display")))
          (newline out)
          (pretty-display

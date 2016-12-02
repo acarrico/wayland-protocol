@@ -10,11 +10,11 @@
 
 (let ()
   (define dp (match (display-connect #f)
-               ((? Display? (var dp)) dp)
+               ((? display? (var dp)) dp)
                ((var errno) (error "connect: " errno))))
 
   (define rp (match (display-get-registry dp)
-               ((? Registry? (var rp)) rp)
+               ((? registry? (var rp)) rp)
                ((var errno) (error "register: " errno))))
 
   (: globals (HashTable Integer Symbol))
@@ -35,7 +35,7 @@
                      (cast dp Pointer))
                ((? ErrorProxyHasListener? (var e))
                 (error "registry already has listener"))
-               ((? RegistryListener? (var rl)) rl)))
+               ((? registry-listener? (var rl)) rl)))
 
   (display-roundtrip dp)
   (printf "globals:\n")
@@ -44,9 +44,9 @@
   ;; A display sync request is handled by a one shot done event. Here,
   ;; handle-done uses callback-get-listener to locate its listener for
   ;; cleanup.
-  (: handle-done CallbackDone)
-  (define (handle-done data callback callback-data)
-    (printf "display sync done event ~a\n" callback-data)
+  (: handle-done CallbackHandleDone)
+  (define (handle-done data callback event-serial)
+    (printf "display sync done with event serial ~a\n" event-serial)
     (define listener (callback-get-listener callback))
     (callback-destroy callback)
     (when listener (free (cast listener Pointer))))
@@ -55,7 +55,7 @@
   (printf "display sync request\n")
   (callback-add-listener
    (match (display-sync dp)
-     ((? Callback? (var callback)) callback)
+     ((? callback? (var callback)) callback)
      ((var errno) (error "sync: " errno)))
    handle-done
    (cast dp Pointer))

@@ -1,11 +1,11 @@
-#lang racket/base
+#lang at-exp racket/base
 
 (provide (struct-out About)
          (struct-out Protocol)
          (struct-out Interface) Interface-name
-         interface-nick
+         interface-id
          interface-name->type
-         interface-type
+         interface-type-id
          interface-name->option-type
          interface-name->ffi-type
          interface-ffi-type
@@ -19,7 +19,9 @@
          interface-typed-client-module
          interface-new-interfaces
          interface-interfaces
+         interface-has-destroy-message
          (struct-out Message) Message-name
+         message-handler-type-id
          message-new-interface
          message-interfaces
          message-bind?
@@ -36,6 +38,7 @@
 
 (require racket/list
          racket/match
+         racket/format
          racket/string)
 
 (struct About (what name summary description) #:transparent)
@@ -44,12 +47,13 @@
 
 (struct Interface (about version requests events enums) #:transparent)
 (define (Interface-name i) (About-name (Interface-about i)))
-(define (interface-name->nick s) (string-trim s "wl_" #:right? #f))
-(define (interface-nick i) (interface-name->nick (Interface-name i)))
+(define (interface-name->id s) (string-trim s "wl_" #:right? #f))
+(define (interface-id i) (interface-name->id (Interface-name i)))
 (define (interface-name->type s)
-  (string->symbol (string-titlecase (interface-name->nick s))))
-(define (interface-type i)
+  (string->symbol (string-titlecase (interface-name->id s))))
+(define (interface-type-id i)
   (interface-name->type (Interface-name i)))
+
 (define (interface-name->option-type s)
   `(Option ,(interface-name->type s)))
 (define (interface-name->ffi-type s)
@@ -93,8 +97,19 @@
                (append (map Request-message (Interface-requests i))
                        (map Event-message (Interface-events i))))))
 
+(define (interface-has-destroy-message i)
+  (for/or ((m (map Request-message (Interface-requests i))))
+    (string=? (Message-name m) "destroy")))
+
 (struct Message (about destructor? since args) #:transparent)
 (define (Message-name m) (About-name (Message-about m)))
+
+(define (message-handler-type-id i m)
+  (define message-name
+    (string-replace
+     (string-titlecase (string-replace (Message-name m) "_" " "))
+     " " ""))
+  (string->symbol @~a{@(interface-type-id i)Handle@|message-name|}))
 
 ;; If the Message sends a new object, which interface?
 ;; (: message-new-interface (-> Message (Option String)))
