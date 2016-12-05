@@ -1,7 +1,8 @@
 #lang typed/racket/base
 
 (provide UInt32
-         (struct-out ErrorProxyHasListener)
+         (struct-out error-proxy-has-handlers)
+         ErrorProxyHasHandlers
          Interface
          Proxy
          Version)
@@ -24,4 +25,6 @@
 (unsafe-require/typed "../../wayland-0/client.rkt"
   (#:opaque Proxy wl_proxy?))
 
-(struct ErrorProxyHasListener () #:transparent)
+(struct error-proxy-has-handlers ()
+  #:type-name ErrorProxyHasHandlers
+  #:transparent)

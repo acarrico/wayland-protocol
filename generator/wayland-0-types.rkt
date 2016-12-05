@@ -35,6 +35,18 @@
   (string->symbol
    @~a{pointer->@(interface-id i)}))
 
+(define (handlers-type-id i)
+  (string->symbol
+   @~a{@(interface-type-id i)Handlers}))
+
+(define (handlers-id i)
+  (string->symbol
+   @~a{@(interface-id i)-handlers}))
+
+(define (get-handler-id i field-name)
+  (string->symbol
+   @~a{@(interface-id i)-handlers-@|field-name|}))
+
 (define (listener-type-id i)
   (string->symbol
    @~a{@(interface-type-id i)Listener}))
@@ -58,6 +70,9 @@
 (define (add-listener-id i)
   (string->symbol @~a{@(interface-id i)-add-listener}))
 
+(define (set-handlers-id i)
+  (string->symbol @~a{@(interface-id i)-set-handlers}))
+
 (define (get-listener-untyped-id i)
   (string->symbol @~a{@(Interface-name i)-get-listener}))
 
@@ -75,10 +90,13 @@
    (format "~a-~a" (Interface-name i) (Message-name m))))
 
 (define (message-stub-id i m)
-  (string->symbol
-   (format "~a-~a"
-     (interface-id i)
-     (string-replace (Message-name m) "_" "-"))))
+  ;; NOTE: special case destructor, because it will be wrapped:
+  (if (Message-destructor? m)
+      (message-stub-untyped-id i m)
+      (string->symbol
+       (format "~a-~a"
+               (interface-id i)
+               (string-replace (Message-name m) "_" "-")))))
 
 (define (message-handler-sig i m)
   (match-define (Message (About what message-name summary description) destructor? since args) m)
@@ -106,20 +124,31 @@
       (interface-type-id i)
       (predicate-id i)
       (downcast-id i)
-      (listener-type-id i)
-      (listener-predicate-id i)
-      (listener-constructor-id i)
-      (add-listener-id i)
-      (get-listener-id i))
-     (if (string=? (Interface-name i) "wl_display")
-         '()
-         (list (destroy-id i)))
+      )
      (map (lambda (r)
             (message-stub-id i (Request-message r)))
           requests)
-     (map (lambda (e)
-            (message-handler-type-id i (Event-message e)))
-          events)))
+     (if (string=? (Interface-name i) "wl_display")
+         ;; NOTE: wl_display is destroyed by disconnect, and its
+         ;; handlers are static C functions:
+         (list)
+         (append
+          (list
+           (destroy-id i)
+           ;; Listener memory management is in destuctor, so none of the
+           ;; listener api needs to be provided, except setting the
+           ;; handlers:
+           #;(listener-type-id i)
+           #;(listener-predicate-id i)
+           #;(listener-constructor-id i)
+           #;(add-listener-id i)
+           #;(get-listener-id i)
+           (handlers-type-id i)
+           `(struct-out ,(handlers-id i))
+           (set-handlers-id i))
+          (map (lambda (e)
+                 (message-handler-type-id i (Event-message e)))
+               events)))))
 
   (define untyped-module @(interface-untyped-client-module i))
 
@@ -157,59 +186,114 @@
                (require/typed 'downcast
                  (@(downcast-id i) (-> Pointer @(interface-type-id i))))
 
-               (unsafe-require/typed @|untyped-module|
-                                     (#:opaque @(listener-type-id i) @|name|_listener?))
-
-               (define @(listener-predicate-id i)
-                 (make-predicate @(listener-type-id i)))
-
                }
            out)
 
-  (define handler-types
-    (map (compose (curry message-handler-type-id i) Event-message)
-         (Interface-events i)))
+  (unless (string=? (Interface-name i) "wl_display")
+    (display @~a{
 
-  (newline out)
-  (pretty-write
-   `(require/typed ,(interface-untyped-client-module i)
-      ,(Comment2 "ISSUE: importing c structs doesn't seem to work:")
-      ((,(listener-constructor-untyped-id i) ,(listener-constructor-id i))
-       (-> ,@handler-types ,(listener-type-id i)))
-      ((,(add-listener-untyped-id i) ,(add-listener-id i))
-       (-> ,(interface-type-id i) ,(listener-type-id i) Pointer Integer))
-      ((,(get-listener-untyped-id i) ,(get-listener-id i))
-       (-> ,(interface-type-id i) (Option ,(listener-type-id i)))))
-   out)
+                 (unsafe-require/typed @|untyped-module|
+                                       (#:opaque @(listener-type-id i) @|name|_listener?))
+
+                 (define @(listener-predicate-id i)
+                   (make-predicate @(listener-type-id i)))
+
+                 }
+             out)
+
+    (define handler-names
+      (map (compose string->symbol Message-name Event-message)
+           (Interface-events i)))
+
+    (define handler-types
+      (map (compose (curry message-handler-type-id i) Event-message)
+           (Interface-events i)))
+
+    (define handler-annotations
+      (map (lambda (name type) `(,name : ,type))
+           handler-names handler-types))
+
+    (newline out)
+    (pretty-write
+     `(require/typed ,(interface-untyped-client-module i)
+        ,(Comment2 "ISSUE: importing c structs doesn't seem to work:")
+        ((,(listener-constructor-untyped-id i) ,(listener-constructor-id i))
+         (-> ,@handler-types ,(listener-type-id i)))
+        ((,(add-listener-untyped-id i) ,(add-listener-id i))
+         (-> ,(interface-type-id i) ,(listener-type-id i) Pointer Integer))
+        ((,(get-listener-untyped-id i) ,(get-listener-id i))
+         (-> ,(interface-type-id i) (Option ,(listener-type-id i)))))
+     out)
+
+    (newline out)
+    (pretty-write
+     `(struct ,(handlers-id i)
+        ,handler-annotations
+        #:transparent
+        #:type-name ,(handlers-type-id i))
+     out)
+
+    (newline out)
+    (pretty-write
+     `(: ,(set-handlers-id i)
+         (-> ,(interface-type-id i) ,(handlers-type-id i) Pointer (Option ErrorProxyHasHandlers)))
+     out)
+
+    (newline out)
+    (pretty-write
+     `(define (,(set-handlers-id i) object handlers data)
+        (define listener (,(listener-constructor-id i)
+                          ,@(map (lambda (name) `(,(get-handler-id i name) handlers)) handler-names)))
+        (define result (,(add-listener-id i) object listener data))
+        (match result
+          (0 #f)
+          (-1
+           (free (cast listener Pointer))
+           (error-proxy-has-handlers))))
+     out)
+
+    (for ((e events))
+      (gen-event e i out))
+    )
 
   (gen-destructors i out)
 
   (for ((r requests))
     (gen-request r i out))
 
-  (for ((e events))
-    (gen-event e i out))
-
   (newline out)
 )
 
-;; NOTE: Three cases:
-;;
-;; * wl_display is a special case with connect/disconnect.
-;;
-;; * Some Wayland objects have a destructor message in their
-;; interface. These are generated with the requests.
-;;
-;; * The remaining Wayland objects have only proxy destructors which
-;; are generated here:
 (define (gen-destructors i out)
-  (unless (or (interface-has-destroy-message i)
-              (string=? (Interface-name i) "wl_display"))
+  ;; NOTE:
+  ;; * wl_display is a special case with connect/disconnect:
+  (unless (string=? (Interface-name i) "wl_display")
+    ;; * Some Wayland objects have a destructor message in their
+    ;; interface. These are generated with the requests.
+    ;;
+    ;; * The remaining Wayland objects have only proxy destructors which
+    ;; are generated here:
+    (unless (interface-has-destroy-message i)
+      (newline out)
+      (pretty-write
+       `(require/typed ,(interface-untyped-client-module i)
+          (,(destroy-untyped-id i)
+           (-> ,(interface-type-id i) Void)))
+       out))
+    ;; * The untyped destructors are wrapped here to add any hooks
+    ;; necessary. Currently that means destroying the listener data
+    ;; structure:
     (newline out)
     (pretty-write
-     `(require/typed ,(interface-untyped-client-module i)
-        ((,(destroy-untyped-id i) ,(destroy-id i))
-         (-> ,(interface-type-id i) Void)))
+     `(: ,(destroy-id i) (-> ,(interface-type-id i) Void))
+     out)
+    (newline out)
+    (pretty-write
+     `(define (,(destroy-id i) object)
+        (define listener (,(get-listener-id i) object))
+        (,(destroy-untyped-id i) object)
+        (when listener (free (cast listener Pointer)))
+        (void))
      out)))
 
 (define (interface-name->object-descriptor-name s)
