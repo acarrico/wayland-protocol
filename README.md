@@ -74,6 +74,9 @@ for nix-shell.
 
 # Test the typed/wayland-0 collection
 
+Note: typed/wayland-0 can be required by both racket and typed racket
+code; your code doesn't have to be typed.
+
 I have a (very) simple test client which you can try:
 
 ```
