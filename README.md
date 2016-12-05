@@ -4,25 +4,9 @@ Wayland display protocol in Racket
 By Anthony Carrico <acarrico@memebeam.org>, this work is in the public
 domain.
 
-This project is very far from polished. I'm uploading now because of a
-request from someone in #racket on Freenode IRC who would like to play
-with Wayland.
-
 Among many possible approaches, I have chosen to bind to the C
 libraries (insert rationale here), and to dump racket source code
-(insert rationale here):
-
-# Code Generation
-
-This is not the most beautiful code of all time, but I believe it
-dumps similar to the C language generator. I've statically generated
-racket code to initialize events, for some reason the C code does this
-dynamically from strings of argument type codes.
-
-The code generator dumps both client and server side Racket modules
-for every Wayland interface present in the protocol's XML file. The
-only generated documentation is some comments in the code (it doesn't
-generate Scribble docs).
+(insert rationale here).
 
 # Test or Development
 
@@ -46,14 +30,14 @@ functions provided by 'dev.bash':
 
 `$ build`
 
-This (re)builds the wayland-0/generated modules.
+This (re)builds the generated modules.
 
 `$ weston-pixman`
 
 This starts Weston with x11 backend and software rendering (useful if
-the defaults are giving your machine trouble).
+the weston defaults are giving your machine trouble).
 
-`$ racket test-client.rkt`
+`$ racket test-typed.rkt`
 
 See below.
 
@@ -66,7 +50,7 @@ user environment.
 
 * Examine 'default.nix' and 'dev.bash' for dependencies and
 configuration. Install the dependencies and configure your development
-environment.
+environment. See also 'config.rkt'.
 
 * The binding generator is cross-friendly in the sense that it doesn't
 try to probe anything from the build machine.
@@ -88,19 +72,121 @@ There is currently no installable package for any system. The nix
 derivation doesn't even install anything, it is currently just useful
 for nix-shell.
 
-# Test Client
+# Test the typed/wayland-0 collection
 
 I have a (very) simple test client which you can try:
 
 ```
-$ racket test-client.rkt
+$ racket test-typed.rkt
 failed to connect to wayland display "No such file or directory"
   context...:
-   /home/acarrico/src/wayland/racket/wayland-protocol/test-client.rkt: [running body]
+   wayland-protocol/test-typed.rkt: [running body]
 ```
 
 If you get the "failed to connect" message, you probably aren't
 running a server. Try starting weston (see 'weston-pixman' above):
+
+```
+$ racket test-typed.rkt
+globals:
+#hasheq((18 . weston_screenshooter)
+        (17 . weston_desktop_shell)
+        (16 . wl_shell)
+        (15 . xdg_shell)
+        (14 . zxdg_shell_v6)
+        (13 . zwp_text_input_manager_v1)
+        (12 . zwp_input_method_v1)
+...
+```
+
+# Details typed/wayland-0 collection
+
+See 'test-typed.rkt' for more details, error handling.
+
+```
+(define disp (display-connect #f)
+(display-disconnect disp)
+```
+
+This is the basic connection to the display server.
+
+```
+(define registry (display-get-registry disp))
+
+(: globals (HashTable Integer Symbol))
+(define globals (make-hasheq))
+
+(: handle-global RegistryHandleGlobal)
+(define (handle-global data registry id interface version)
+  (hash-set! globals id (string->symbol interface)))
+
+(: handle-global-remove RegistryHandleGlobalRemove)
+(define (handle-global-remove data registry id)
+  (hash-remove! globals id))
+
+(registry-set-handlers
+  registry
+  (registry-handlers handle-global handle-global-remove)
+  (cast disp Pointer))
+
+(display-roundtrip disp)
+(registry-destroy registry)
+```
+
+Use the display to get the registry. The registry has callbacks for
+two events, *handle-global* and *handle-global-remove*. The server
+will announce the globals once we flush the request and the events
+through with *display-roundtrip*. This simple example (and necessary
+first step) illustrates how to make requests and process events.
+
+Note that handlers get a 'data' arguement, this reflects the mechanism
+for simulating closure arguments with C procedures. I've needlessly
+sent the display pointer as 'data', but our handlers are true
+closures, so you can simply ignore this mechanism and close over any
+values your handlers might need.
+
+The example file also shows another interface, comprising a display
+sync request and handling the done event on the corresponding callback
+object.
+
+Note: Don't confuse "callback" with the generic term "handler".
+Callbacks sound very generic, but they are specific Wayland objects
+which only handle the display sync; other events are handled by other
+objects (in client side terminology).
+
+Note: A "listener" is a C api mechanism for dispatching events to
+handlers (in client side terminology). This collection does currently
+use libwayland's listener mechanism, but it is hidden in the
+typed/wayland-0 collection. In short, just set handlers on Wayland
+objects and destroy the objects when you are done.
+
+The API is documented at
+https://wayland.freedesktop.org/docs/html/apa.html, and the types
+defined in typed/wayland-0/generated are also informative.
+
+# Code Generation
+
+The generator is not the most beautiful code of all time, but I
+believe it dumps similar to the C language generator. I've statically
+generated racket code to initialize events, for some reason the C code
+does this dynamically from strings of argument type codes.
+
+The code generator dumps both client and server side Racket modules
+for every Wayland interface present in the protocol's XML file. The
+only generated documentation is some comments in the code (it doesn't
+generate Scribble docs). This API is (currently) in the wayland-0
+collection. There is a small example in test-client.rkt. It is not
+recommended for direct use.
+
+The wayland-0 collection is wrapped by the typed/wayland-0 collection.
+There is a small example in test-typed.rkt. This is currently the
+nicest API to use.
+
+# Test the wayland-0 collection
+
+You should probably ignore this lower level API whenever
+typed/wayland-0 has what you need.
+
 
 ```
 $ racket test-client.rkt
@@ -116,9 +202,10 @@ registry-handle-global: I got called!
 ...
 ```
 
-Now you see the test client in operation.
+# Details wayland-0 collection
 
-# Details
+You should probably ignore this lower level API whenever
+typed/wayland-0 has what you need.
 
 I started the project with "test-client.rkt" which was completely
 manual ffi bindings, and from there created the wayland-0 and
@@ -169,22 +256,11 @@ illustrates how to make requests and process events.
 
 # Further Testing
 
-In theory, with *(require wayland-0/generated/wl_xxxxxxxx-client)* (or
-*-server*) you can get busy with any interface in the Wayland
-protocol. However, nothing else has been tested. In reality, the
-generator and/or the wayland-0 modules may need a little
-tweaking.
-
 There are two modules wayland-0/generated/client-test and
 wayland-0/generated/server-test which simply require all the
-interfaces for one side or the other. Both these tests currently
-reveal some problems, the server side definitely needs more work (my
-long term to do list includes the item "wayland ffi server side
-bindings").
+interfaces for one side or the other. The sever test currently reveals
+some problems.
 
 # Status
 
-My current Racket activity is in the
-[Bindings as Sets of Scopes](https://github.com/acarrico/evaluator)
-project rather than this wayland-protocol project, but I'll get back
-around to this one, and I'd love to hear from anyone who tries it.
+Server side is still very rough.
