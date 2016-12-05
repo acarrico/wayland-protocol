@@ -133,7 +133,7 @@ This is the basic connection to the display server.
 (registry-destroy registry)
 ```
 
-Use the display to get the registry. The registry has callbacks for
+Use the display to get the registry. The registry has handlers for
 two events, *handle-global* and *handle-global-remove*. The server
 will announce the globals once we flush the request and the events
 through with *display-roundtrip*. This simple example (and necessary
@@ -248,7 +248,7 @@ This the basic connection to the display server.
 ```
 
 Use the display to get to the registry. The *registry-listener* has
-callbacks for two events, *registry-handle-global* and
+handlers for two events, *registry-handle-global* and
 *registry-handle-global-remove*. The server will announce the globals
 once we flush the request and the events through with
 *wl_display_roundtrip*. This simple example (and necessary first step)
