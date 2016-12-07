@@ -22,6 +22,7 @@
          interface-has-destroy-message
          (struct-out Message) Message-name
          message-handler-type-id
+         message-new-id-arg
          message-new-interface
          message-interfaces
          message-bind?
@@ -110,6 +111,10 @@
      (string-titlecase (string-replace (Message-name m) "_" " "))
      " " ""))
   (string->symbol @~a{@(interface-type-id i)Handle@|message-name|}))
+
+;; Message's new-id arg, if any:
+(define (message-new-id-arg m)
+  (for/or ((a (Message-args m))) (and (arg-new-id? a) a)))
 
 ;; If the Message sends a new object, which interface?
 ;; (: message-new-interface (-> Message (Option String)))
