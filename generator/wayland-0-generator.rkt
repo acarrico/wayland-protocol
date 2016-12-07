@@ -402,18 +402,15 @@
                                reverse-args)
                               (_
                                (cons (Arg-name a) reverse-args))))))
+     (define new-id-arg?
+       (message-new-id-arg m))
+
+     (define new-interface-name (and new-id-arg? (Arg-interface-name new-id-arg?)))
 
      (define arg-count
-       (for/fold ((arg-count 0))
-                 ((a args))
-         (+ arg-count
-            (match a
-              ((struct* Arg ((type "new_id") (interface-name #f))) 3)
-              ((struct* Arg ((type "new_id"))) 1)
-              (_ 1)))))
-
-     (define new-id-arg?
-       (for/or ((a args)) (and (string=? (Arg-type a) "new_id") a)))
+       (if (and new-id-arg? (not new-interface-name))
+           (+ 2 (length args))
+           (length args)))
 
      (define allocate-args-form
        `(define args (cast (malloc 'raw (* ,arg-count (ctype-sizeof _wl_argument)))
@@ -433,7 +430,7 @@
                    (append
                     (reverse
                      (list
-                      (gen-initialize-arg-form "int" index '(wl_interface-name interface))
+                      (gen-initialize-arg-form "string" index '(wl_interface-name interface))
                       (gen-initialize-arg-form "uint" (+ index 1) 'version)
                       (gen-initialize-arg-form "new_id" (+ index 2) #f)))
                     forms)))
@@ -453,6 +450,17 @@
          ,@initialize-args-forms
          ,(match new-id-arg?
             ((struct* Arg ((about (struct* About ((name arg-name))))
+                           (interface-name #f)))
+              `(define ,arg-name
+                 (wl_proxy_marshal_array_constructor_versioned
+                  (cast ,(Interface-name interface)
+                        ,(interface-ffi-pointer interface)
+                        _wl_proxy-pointer)
+                  ,(opcode-name interface m)
+                  args
+                  "interface"
+                  "version")))
+            ((struct* Arg ((about (struct* About ((name arg-name))))
                            (interface-name interface-name)))
               `(define ,arg-name
                  (wl_proxy_marshal_array_constructor
@@ -461,9 +469,7 @@
                         _wl_proxy-pointer)
                   ,(opcode-name interface m)
                   args
-                  ,(if interface-name
-                       (interface-name->object-descriptor-name interface-name)
-                       "interface"))))
+                  ,(interface-name->object-descriptor-name interface-name))))
             (_
              `(wl_proxy_marshal_array
                ,(Interface-name interface)
