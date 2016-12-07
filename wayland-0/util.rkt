@@ -2,7 +2,10 @@
 
 (require ffi/unsafe ffi/unsafe/define)
 
-(provide (struct-out wl_interface)
+(provide (struct-out wl_message)
+         _wl_message
+         _wl_message-pointer
+         (struct-out wl_interface)
          _wl_interface
          _wl_interface-pointer
          (struct-out wl_array)
