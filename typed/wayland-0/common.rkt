@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (provide UInt32
+         Int32
          (struct-out error-proxy-has-handlers)
          ErrorProxyHasHandlers
          Interface
@@ -14,6 +15,7 @@
 (provide (all-from-out "pointer.rkt"))
 
 (define-type UInt32 Exact-Nonnegative-Integer)
+(define-type Int32 Integer)
 
 (define-type Version UInt32)
 
