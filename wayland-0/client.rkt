@@ -10,6 +10,7 @@
  ;; _wl_resource-pointer
  wl_proxy_marshal_array
  wl_proxy_marshal_array_constructor
+ wl_proxy_marshal_array_constructor_versioned
  wl_proxy_destroy
  wl_proxy_add_listener
  wl_proxy_get_listener
@@ -51,6 +52,15 @@
         _uint32
         _wl_argument-pointer
         _wl_interface-pointer
+        -> _wl_proxy-pointer/null))
+
+(define-wl-client wl_proxy_marshal_array_constructor_versioned
+  (_fun #:save-errno 'posix
+        _wl_proxy-pointer
+        _uint32
+        _wl_argument-pointer
+        _wl_interface-pointer
+        _uint32
         -> _wl_proxy-pointer/null))
 
 (define-wl-client wl_proxy_destroy
