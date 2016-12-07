@@ -18,7 +18,7 @@
 (: display-connect (-> (Option String) (U Display Errno)))
 (define (display-connect name)
   (or (wl_display_connect name)
-      (get-Errno)))
+      (get-errno)))
 
 (: display-disconnect (-> Display Void))
 (define (display-disconnect d)
@@ -30,5 +30,5 @@
 (define (display-roundtrip dp)
   (define result (wl_display_roundtrip dp))
   (if (= result -1)
-      (get-Errno)
+      (get-errno)
       result))

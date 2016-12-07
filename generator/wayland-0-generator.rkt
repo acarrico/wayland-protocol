@@ -480,7 +480,7 @@
                        `(cast ,arg-name _wl_proxy-pointer/null
                               ,(interface-name->ffi-pointer/null interface-name))
                        arg-name)
-                  (get-Errno)))
+                  (get-errno)))
             (_
              '(void))))
 
