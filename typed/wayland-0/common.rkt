@@ -6,6 +6,7 @@
          ErrorProxyHasHandlers
          Interface
          Proxy
+         proxy?
          Version)
 
 (require "errno.rkt")
@@ -26,6 +27,7 @@
 
 (unsafe-require/typed "../../wayland-0/client.rkt"
   (#:opaque Proxy wl_proxy?))
+(define proxy? (make-predicate Proxy))
 
 (struct error-proxy-has-handlers ()
   #:type-name ErrorProxyHasHandlers
