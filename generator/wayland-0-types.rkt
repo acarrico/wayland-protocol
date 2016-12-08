@@ -133,19 +133,16 @@
          ;; handlers are static C functions:
          (list)
          (append
-          (list
-           (destroy-id i)
-           ;; Listener memory management is in destuctor, so none of the
-           ;; listener api needs to be provided, except setting the
-           ;; handlers:
-           #;(listener-type-id i)
-           #;(listener-predicate-id i)
-           #;(listener-constructor-id i)
-           #;(add-listener-id i)
-           #;(get-listener-id i)
-           (handlers-type-id i)
-           `(struct-out ,(handlers-id i))
-           (set-handlers-id i))
+          (list (destroy-id i)
+                )
+          (if (empty? events)
+              '()
+              ;; Listener memory management is in destuctor, so none of the
+              ;; listener api needs to be provided, except setting the
+              ;; handlers:
+              (list (handlers-type-id i)
+                    `(struct-out ,(handlers-id i))
+                    (set-handlers-id i)))
           (map (lambda (e)
                  (message-handler-type-id i (Event-message e)))
                events)))))
@@ -189,7 +186,8 @@
                }
            out)
 
-  (unless (string=? (Interface-name i) "wl_display")
+  (unless (or (string=? (Interface-name i) "wl_display")
+              (empty? events))
     (display @~a{
 
                  (unsafe-require/typed @|untyped-module|
@@ -288,13 +286,19 @@
      `(: ,(destroy-id i) (-> ,(interface-type-id i) Void))
      out)
     (newline out)
-    (pretty-write
-     `(define (,(destroy-id i) object)
-        (define listener (,(get-listener-id i) object))
-        (,(destroy-untyped-id i) object)
-        (when listener (free (cast listener Pointer)))
-        (void))
-     out)))
+    (if (empty? (Interface-events i))
+        (pretty-write
+         `(define (,(destroy-id i) object)
+            (,(destroy-untyped-id i) object)
+            (void))
+         out)
+        (pretty-write
+         `(define (,(destroy-id i) object)
+            (define listener (,(get-listener-id i) object))
+            (,(destroy-untyped-id i) object)
+            (when listener (free (cast listener Pointer)))
+            (void))
+         out))))
 
 (define (interface-name->object-descriptor-name s)
   (format "~a_interface" s))
