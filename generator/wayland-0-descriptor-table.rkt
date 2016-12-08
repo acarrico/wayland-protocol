@@ -24,16 +24,13 @@
 
 (define (descriptor-table-module server?)
   (string->symbol
-   (format "wayland-0/generated/descriptor-table-~a"
+   (format "typed/wayland-0/generated/descriptor-table-~a"
            (server?->string server?))))
 
 (define (descriptor-table-filename server?)
   (format "descriptor-table-~a.rkt" (server?->string server?)))
 
 (define (descriptor-table-path server?)
-  (format "wayland-0/generated/~a" (descriptor-table-filename server?)))
-
-(define (descriptor-table-typed-path server?)
   (format "typed/wayland-0/generated/~a" (descriptor-table-filename server?)))
 
 (define (descriptor-table-entry i)
@@ -54,9 +51,11 @@
 
                }
            out)
-  (pretty-write `(require ,@interface-modules) out)
+  (pretty-write `(require typed/wayland-0/common ,@interface-modules) out)
   (newline out)
   (pretty-write `(provide descriptor-table) out)
+  (newline out)
+  (pretty-write '(: descriptor-table (Listof (Pair Symbol Interface))) out)
   (newline out)
   (pretty-display `(define descriptor-table ,(cons 'quasiquote (list descriptor-table))) out)
   (newline out))
