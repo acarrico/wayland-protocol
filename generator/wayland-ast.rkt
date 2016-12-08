@@ -6,6 +6,8 @@
          interface-id
          interface-name->type
          interface-type-id
+         interface-untyped-module
+         interface-typed-module
          interface-name->option-type
          interface-name->ffi-type
          interface-ffi-type
@@ -37,7 +39,8 @@
          arg-trtype
          (struct-out Entry))
 
-(require racket/list
+(require "util.rkt"
+         racket/list
          racket/match
          racket/format
          racket/string)
@@ -54,7 +57,16 @@
   (string->symbol (string-titlecase (interface-name->id s))))
 (define (interface-type-id i)
   (interface-name->type (Interface-name i)))
-
+(define (interface-untyped-module i server?)
+  (string->symbol
+   (format "wayland-0/generated/~a-~a"
+           (Interface-name i)
+           (server?->string server?))))
+(define (interface-typed-module i server?)
+  (string->symbol
+   (format "typed/wayland-0/generated/~a-~a"
+           (Interface-name i)
+           (server?->string server?))))
 (define (interface-name->option-type s)
   `(Option ,(interface-name->type s)))
 (define (interface-name->ffi-type s)
