@@ -2,6 +2,9 @@
 
 (provide UInt32
          Int32
+         Fixed
+         WlArray
+         FileDescriptor
          (struct-out error-proxy-has-handlers)
          ErrorProxyHasHandlers
          Interface
@@ -17,7 +20,9 @@
 
 (define-type UInt32 Exact-Nonnegative-Integer)
 (define-type Int32 Integer)
-
+(define-type Fixed Integer)
+(define-type WlArray Pointer)
+(define-type FileDescriptor Integer)
 (define-type Version UInt32)
 
 (require typed/racket/unsafe)
