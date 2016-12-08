@@ -15,13 +15,13 @@
 (require "errno.rkt")
 (provide (all-from-out "errno.rkt"))
 
-(require "pointer.rkt")
-(provide (all-from-out "pointer.rkt"))
+(require "cpointer.rkt")
+(provide (all-from-out "cpointer.rkt"))
 
 (define-type UInt32 Exact-Nonnegative-Integer)
 (define-type Int32 Integer)
 (define-type Fixed Integer)
-(define-type WlArray Pointer)
+(define-type WlArray CPointer)
 (define-type FileDescriptor Integer)
 (define-type Version UInt32)
 

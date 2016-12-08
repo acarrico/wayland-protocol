@@ -100,12 +100,12 @@
 
 (define (message-handler-sig i m)
   (match-define (Message (About what message-name summary description) destructor? since args) m)
-  `(-> Pointer
+  `(-> CPointer
        ,(interface-type-id i)
        ,@(map (lambda (arg)
                 (match-define (Arg about type summary interface-name allow-null) arg)
                 (cond ((and (equal? type "object") (not interface-name))
-                       'Pointer)
+                       'CPointer)
                       ((equal? type "new_id")
                        (interface-name->type interface-name))
                       (else
@@ -181,7 +181,7 @@
                    (cast p _pointer @(interface-ffi-pointer i))))
 
                (require/typed 'downcast
-                 (@(downcast-id i) (-> Pointer @(interface-type-id i))))
+                 (@(downcast-id i) (-> CPointer @(interface-type-id i))))
 
                }
            out)
@@ -218,7 +218,7 @@
         ((,(listener-constructor-untyped-id i) ,(listener-constructor-id i))
          (-> ,@handler-types ,(listener-type-id i)))
         ((,(add-listener-untyped-id i) ,(add-listener-id i))
-         (-> ,(interface-type-id i) ,(listener-type-id i) Pointer Integer))
+         (-> ,(interface-type-id i) ,(listener-type-id i) CPointer Integer))
         ((,(get-listener-untyped-id i) ,(get-listener-id i))
          (-> ,(interface-type-id i) (Option ,(listener-type-id i)))))
      out)
@@ -234,7 +234,7 @@
     (newline out)
     (pretty-write
      `(: ,(set-handlers-id i)
-         (-> ,(interface-type-id i) ,(handlers-type-id i) Pointer (Option ErrorProxyHasHandlers)))
+         (-> ,(interface-type-id i) ,(handlers-type-id i) CPointer (Option ErrorProxyHasHandlers)))
      out)
 
     (newline out)
@@ -246,7 +246,7 @@
         (match result
           (0 #f)
           (-1
-           (free (cast listener Pointer))
+           (free (cast listener CPointer))
            (error-proxy-has-handlers))))
      out)
 
@@ -296,7 +296,7 @@
          `(define (,(destroy-id i) object)
             (define listener (,(get-listener-id i) object))
             (,(destroy-untyped-id i) object)
-            (when listener (free (cast listener Pointer)))
+            (when listener (free (cast listener CPointer)))
             (void))
          out))))
 
