@@ -12,7 +12,10 @@
 (provide dump-descriptor-table)
 
 (define (dump-descriptor-table protocol)
-  (define interfaces (Protocol-interfaces protocol))
+  (define interfaces
+    (filter
+     (lambda (i) (not (string=? (Interface-name i) "wl_display")))
+     (Protocol-interfaces protocol)))
   (for ((server? '(#t #f)))
     (call-with-output-file
       (descriptor-table-path server?)
