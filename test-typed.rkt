@@ -34,7 +34,7 @@
          (registry-set-handlers
           registry
           (registry-handlers handle-global handle-global-remove)
-          (cast disp Pointer)))
+          (cast disp CPointer)))
     (error "registry already has handlers"))
 
   (display-roundtrip disp)
@@ -56,7 +56,7 @@
             ((? callback? (var callback)) callback)
             ((var errno) (error "sync: " errno)))
           (callback-handlers handle-done)
-          (cast disp Pointer)))
+          (cast disp CPointer)))
     (error "registry already has listener"))
 
   (display-roundtrip disp)
