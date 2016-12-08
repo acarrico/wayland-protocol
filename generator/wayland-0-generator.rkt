@@ -41,12 +41,6 @@
 (define-ffi-definer define-wl-client libwayland-client)
 ")
 
-(define (interface-module i server?)
-  (string->symbol
-   (format "wayland-0/generated/~a-~a"
-           (Interface-name i)
-           (server?->string server?))))
-
 (define (interface-name-filename name server?)
   (format "~a-~a.rkt" name (server?->string server?)))
 
@@ -120,7 +114,7 @@
     (Interface-dump i #t server-test-out)))
 
 (define (Interface-dump i server? test-out)
-  (pretty-write `(require ,(interface-module i server?)) test-out)
+  (pretty-write `(require ,(interface-untyped-module i server?)) test-out)
   (call-with-output-file
     (interface-path i server?)
     (curry Interface-dump* i server?)
