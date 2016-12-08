@@ -57,7 +57,7 @@
             ((var errno) (error "sync: " errno)))
           (callback-handlers handle-done)
           (cast disp CPointer)))
-    (error "registry already has listener"))
+    (error "callback already has handlers"))
 
   (display-roundtrip disp)
   (registry-destroy registry)
