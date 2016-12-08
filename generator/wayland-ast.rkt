@@ -196,7 +196,10 @@
     ("string" 'String)
     ("array" 'WlArray)
     ("fd" 'FileDescriptor)
-    ("new_id" 'Object)
-    ("object" 'Object)))
+    ((or "new_id" "object")
+     (define interface-name (Arg-interface-name a))
+     (if interface-name
+         (interface-name->type interface-name)
+         'Pointer))))
 
 (struct Entry (about value summary since) #:transparent)
