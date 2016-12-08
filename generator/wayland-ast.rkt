@@ -4,6 +4,8 @@
          (struct-out Protocol)
          (struct-out Interface) Interface-name
          interface-id
+         interface-name->descriptor-name
+         interface-descriptor-name
          interface-name->type
          interface-type-id
          interface-untyped-module
@@ -50,6 +52,11 @@
 (struct Protocol (name interfaces) #:transparent)
 
 (struct Interface (about version requests events enums) #:transparent)
+(define (interface-name->descriptor-name s)
+  (string->symbol (format "~a_interface" s)))
+(define (interface-descriptor-name i)
+  (interface-name->descriptor-name (Interface-name i)))
+
 (define (Interface-name i) (About-name (Interface-about i)))
 (define (interface-name->id s) (string-trim s "wl_" #:right? #f))
 (define (interface-id i) (interface-name->id (Interface-name i)))
