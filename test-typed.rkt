@@ -3,10 +3,23 @@
 (require typed/wayland-0/registry-client
          typed/wayland-0/display-client
          typed/wayland-0/callback-client
+         typed/wayland-0/descriptor-client
          typed/wayland-0/common
          racket/function
          racket/match
          racket/pretty)
+
+(struct global ((name : UInt32)
+                (interface-name : Symbol)
+                (interface : Interface)
+                (version : Version))
+  #:type-name Global
+  #:transparent)
+
+(: make-global (-> UInt32 Symbol Version (Option Global)))
+(define (make-global name interface-name version)
+  (define desc (find-descriptor interface-name))
+  (and desc (global name interface-name desc version)))
 
 (let ()
   (define disp
@@ -19,16 +32,31 @@
       ((? registry? (var registry)) registry)
       ((var errno) (error "register: " errno))))
 
-  (: globals (HashTable Integer Symbol))
-  (define globals (make-hasheq))
+  (: globals-by-name (HashTable Integer Global))
+  (define globals-by-name (make-hasheq))
+
+  (: globals-by-interface-name (HashTable Symbol (Listof Global)))
+  (define globals-by-interface-name (make-hasheq))
 
   (: handle-global RegistryHandleGlobal)
-  (define (handle-global data registry id interface version)
-    (hash-set! globals id (string->symbol interface)))
+  (define (handle-global data registry name interface version)
+    (define interface-name (string->symbol interface))
+    (define global (make-global name interface-name version))
+    (when global
+      (hash-set! globals-by-name name global)
+      (define globals
+        (hash-ref globals-by-interface-name interface-name (lambda () '())))
+      (hash-set! globals-by-interface-name interface-name
+                 (cons global globals))))
 
   (: handle-global-remove RegistryHandleGlobalRemove)
   (define (handle-global-remove data registry id)
-    (hash-remove! globals id))
+    (define global (hash-ref globals-by-name id))
+    (when global
+      (hash-remove! globals-by-name id)
+      (define globals
+        (hash-ref globals-by-interface-name (global-interface-name global)))
+      (hash-set! globals-by-interface-name (global-interface-name global) (remove global globals))))
 
   (when (error-proxy-has-handlers?
          (registry-set-handlers
@@ -39,7 +67,7 @@
 
   (display-roundtrip disp)
   (printf "globals:\n")
-  (pretty-display globals)
+  (pretty-display globals-by-name)
 
   ;; A display sync request is handled by a one shot done event. Here,
   ;; handle-done uses callback-destroy for cleanup:
