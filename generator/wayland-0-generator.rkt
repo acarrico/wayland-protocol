@@ -1,7 +1,8 @@
 #lang at-exp racket/base
 
 (require "wayland-ast.rkt"
-         "wayland-0-types.rkt")
+         "wayland-0-types.rkt"
+         "util.rkt")
 
 (require racket/pretty)
 (require racket/list)
@@ -39,8 +40,6 @@
 
 (define-ffi-definer define-wl-client libwayland-client)
 ")
-
-(define (server?->string server?) (if server? "server" "client"))
 
 (define (interface-module i server?)
   (string->symbol
