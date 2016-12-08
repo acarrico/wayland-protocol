@@ -2,6 +2,7 @@
 
 (require "wayland-ast.rkt"
          "wayland-0-types.rkt"
+         "wayland-0-descriptor-table.rkt"
          "util.rkt")
 
 (require racket/pretty)
@@ -53,14 +54,8 @@
 (define (interface-typed-path i server?)
   (format "typed/wayland-0/generated/~a" (interface-filename i server?)))
 
-(define (interface-name->object-descriptor-name s)
-  (format "~a_interface" s))
-
 (define (object-predicate-name i)
   (string-append (Interface-name i) "?"))
-
-(define (object-descriptor-name i)
-  (interface-name->object-descriptor-name (Interface-name i)))
 
 (define (object-client-interface-name i)
   (format "~a_listener" (Interface-name i)))
@@ -109,6 +104,7 @@
   (format "~a-~a" (Interface-name i) (Message-name m)))
 
 (define (Protocol-dump p client-test-out server-test-out)
+  (dump-descriptor-table p)
   (for ((i (Protocol-interfaces p)))
     (Interface-dump i #f client-test-out)
     (Interface-dump i #t server-test-out)))
@@ -139,7 +135,7 @@
       (append
        (list (interface-ffi-pointer i)
              (interface-ffi-pointer/null i)
-             (object-descriptor-name i))
+             (interface-descriptor-name i))
        (if (empty? request-messages)
            '()
            `(struct-out ,(object-server-interface-name i)))
@@ -159,7 +155,7 @@
        (list (object-predicate-name i)
              (interface-ffi-pointer i)
              (interface-ffi-pointer/null i)
-             (object-descriptor-name i))
+             (interface-descriptor-name i))
        (if (empty? event-messages)
            '()
            (list
@@ -207,10 +203,10 @@
 
      (if server?
          (pretty-display
-          `(define-wl-server ,(object-descriptor-name i) _wl_interface)
+          `(define-wl-server ,(interface-descriptor-name i) _wl_interface)
           out)
          (pretty-display
-          `(define-wl-client ,(object-descriptor-name i) _wl_interface)
+          `(define-wl-client ,(interface-descriptor-name i) _wl_interface)
           out))
 
      (for ((e enums))
@@ -462,7 +458,7 @@
                         _wl_proxy-pointer)
                   ,(opcode-name interface m)
                   args
-                  ,(interface-name->object-descriptor-name interface-name))))
+                  ,(interface-name->descriptor-name interface-name))))
             (_
              `(wl_proxy_marshal_array
                ,(Interface-name interface)
