@@ -134,7 +134,7 @@
          (list)
          (append
           (list (destroy-id i)
-                )
+                (interface-descriptor-name i))
           (if (empty? events)
               '()
               ;; Listener memory management is in destuctor, so none of the
@@ -256,6 +256,9 @@
 
   (gen-destructors i out)
 
+  (newline out)
+  (gen-descriptor i out)
+
   (for ((r requests))
     (gen-request r i out))
 
@@ -299,6 +302,13 @@
             (when listener (free (cast listener CPointer)))
             (void))
          out))))
+
+(define (gen-descriptor i out)
+  (unless (string=? (Interface-name i) "wl_display")
+    (pretty-write
+     `(require/typed ,(interface-untyped-client-module i)
+        (,(interface-descriptor-name i) Interface))
+     out)))
 
 (define (interface-name->object-descriptor-name s)
   (format "~a_interface" s))
